@@ -1,1373 +1,2251 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pipe Reel Designer — Specialty RTP</title>
+<title>Splice Logger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
 <style>
-  :root{
-    --bg:#f4f5f7; --panel:#ffffff; --line:#d3d7de; --ink:#14181f; --muted:#5d6673;
-    --accent:#1f4e9c; --accent2:#e8b400; --warn:#b3261e; --ok:#1c7a3e;
-    --paper:#ffffff; --drawink:#14181f;
+:root{
+  --bg:#E9EBE6; --panel:#FCFDFA; --panel-2:#F1F3EE;
+  --ink:#161A16; --ink-2:#3D443C; --muted:#6B7369;
+  --line:#D2D6CB; --line-strong:#B6BCAE;
+  --accent:#0F6E5C; --accent-ink:#FFFFFF; --accent-soft:#D9EDE6;
+  --signal:#9A4D05; --signal-soft:#F5E4CD;
+  --alert:#992320; --alert-soft:#F5DBD9; --alert-ink:#FFFFFF;
+  --shadow:0 1px 2px rgba(20,30,20,.07), 0 10px 28px rgba(20,30,20,.07);
+  --frame:rgba(20,30,20,.10);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#121510; --panel:#1B1F19; --panel-2:#232821;
+    --ink:#E9ECE4; --ink-2:#C0C7BA; --muted:#939B8C;
+    --line:#2C3229; --line-strong:#414937;
+    --accent:#43CCA8; --accent-ink:#08201A; --accent-soft:#123029;
+    --signal:#E0A055; --signal-soft:#312413;
+    --alert:#E4736A; --alert-soft:#3A1F1D; --alert-ink:#2A1210;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px rgba(0,0,0,.35);
+    --frame:rgba(255,255,255,.09);
   }
-  @media (prefers-color-scheme: dark){
-    :root{ --bg:#15181d; --panel:#1d2128; --line:#333a45; --ink:#e7eaef; --muted:#9aa4b2;
-           --accent:#6ea3ff; --ok:#63c98c; --warn:#ff8a80; --paper:#ffffff; --drawink:#14181f; }
-  }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);
-       font:14px/1.45 "Segoe UI",system-ui,-apple-system,sans-serif}
-  header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
-         padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);
-         position:sticky;top:0;z-index:5}
-  header h1{font-size:16px;margin:0;font-weight:650}
-  header .sub{color:var(--muted);font-size:12px}
-  .spacer{flex:1}
-  button{font:inherit;font-size:13px;padding:6px 12px;border-radius:6px;cursor:pointer;
-         border:1px solid var(--line);background:var(--panel);color:var(--ink)}
-  button:hover{border-color:var(--accent)}
-  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-  .wrap{display:grid;grid-template-columns:390px 1fr;gap:14px;padding:14px;align-items:start}
-  @media (max-width:1180px){ .wrap{grid-template-columns:1fr} }
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;
-        padding:12px 14px;margin-bottom:12px}
-  .card > h2{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);
-             margin:0 0 10px;font-weight:650;display:flex;align-items:center;gap:8px}
-  .card > h2 .tag{font-size:10px;text-transform:none;letter-spacing:0;color:var(--accent);
-                  border:1px solid var(--line);border-radius:20px;padding:1px 7px;font-weight:600}
-  .row{display:grid;grid-template-columns:1fr 108px;gap:8px;align-items:center;margin-bottom:7px}
-  .row label{font-size:13px}
-  .row label small{display:block;color:var(--muted);font-size:11px;line-height:1.3}
-  .row.full{grid-template-columns:1fr}
-  .row.wide{grid-template-columns:1fr 168px}
-  .tb2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
-  input[type=text],input[type=number],select{
-      width:100%;font:inherit;font-size:13px;padding:5px 7px;border-radius:5px;
-      border:1px solid var(--line);background:var(--bg);color:var(--ink)}
-  input[type=number]{text-align:right;font-variant-numeric:tabular-nums}
-  input[type=range]{width:100%;margin:0}
-  .slrow{display:grid;grid-template-columns:1fr 92px;gap:8px;align-items:center;margin-bottom:2px}
-  .slrow + .slcap{margin:0 0 9px;font-size:11px;color:var(--muted)}
-  .derived{display:grid;grid-template-columns:1fr auto;gap:3px 10px;font-size:12.5px;margin:0}
-  .derived dt{color:var(--muted)}
-  .derived dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
-  .chk{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;
-       padding:4px 8px;border-radius:5px;margin-bottom:4px;border-left:3px solid var(--line);
-       background:var(--bg)}
-  .chk.pass{border-left-color:var(--ok)}
-  .chk.fail{border-left-color:var(--warn);color:var(--warn);font-weight:600}
-  .chk b{font-variant-numeric:tabular-nums;white-space:nowrap}
-  .chk small{display:block;font-weight:400;font-size:10.5px;opacity:.75}
-  table{border-collapse:collapse;width:100%;font-size:12px}
-  th,td{padding:3px 6px;border-bottom:1px solid var(--line);text-align:right;
-        font-variant-numeric:tabular-nums;white-space:nowrap}
-  th{color:var(--muted);font-weight:600;text-align:right;font-size:11px;
-     text-transform:uppercase;letter-spacing:.04em}
-  th:first-child,td:first-child{text-align:left}
-  tbody tr{cursor:pointer}
-  tbody tr:hover{background:var(--bg)}
-  tbody tr.cur{background:color-mix(in srgb,var(--accent) 14%,transparent);font-weight:600}
-  tbody tr.bad td{color:var(--muted)}
-  .scroll{max-height:330px;overflow:auto}
-  .sheetwrap{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px}
-  .sheetwrap svg{width:100%;height:auto;display:block;background:var(--paper);
-                 border:1px solid var(--line);border-radius:4px}
-  .note{font-size:11.5px;color:var(--muted);margin:8px 2px 0;line-height:1.5}
-  @media print{
-    header,.panel-col,.note,.card.noprint{display:none!important}
-    .wrap{display:block;padding:0}
-    .sheetwrap{border:0;padding:0;border-radius:0}
-    .sheetwrap svg{border:0;width:100%}
-    @page{size:landscape;margin:8mm}
-  }
+}
+:root[data-theme="dark"]{
+  --bg:#121510; --panel:#1B1F19; --panel-2:#232821;
+  --ink:#E9ECE4; --ink-2:#C0C7BA; --muted:#939B8C;
+  --line:#2C3229; --line-strong:#414937;
+  --accent:#43CCA8; --accent-ink:#08201A; --accent-soft:#123029;
+  --signal:#E0A055; --signal-soft:#312413;
+  --alert:#E4736A; --alert-soft:#3A1F1D; --alert-ink:#2A1210;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 28px rgba(0,0,0,.35);
+  --frame:rgba(255,255,255,.09);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Barlow","Helvetica Neue",Arial,sans-serif;
+  font-size:16px; line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:none;padding:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+/* ---------- shell ---------- */
+.app{
+  max-width:480px; margin:0 auto; min-height:100vh;
+  background:var(--bg); position:relative;
+  display:flex; flex-direction:column;
+  border-left:1px solid var(--frame); border-right:1px solid var(--frame);
+}
+@media(min-width:520px){ .app{min-height:100vh} }
+
+.topbar{
+  position:sticky; top:0; z-index:30;
+  background:var(--panel); border-bottom:1px solid var(--line);
+  padding:10px 14px 9px;
+  display:flex; align-items:center; gap:10px;
+}
+.brand{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.brand b{
+  font-family:"Barlow Semi Condensed",sans-serif; font-weight:700;
+  font-size:17px; letter-spacing:.02em; text-transform:uppercase; line-height:1;
+}
+.jobline{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--muted);
+  letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.statuses{display:flex;align-items:center;gap:6px;flex-shrink:0}
+
+.pill{
+  display:inline-flex;align-items:center;gap:5px;
+  font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;
+  font-size:12px;letter-spacing:.05em;text-transform:uppercase;
+  padding:4px 8px;border-radius:3px;border:1px solid transparent;white-space:nowrap;
+}
+.pill.ok{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.pill.warn{background:var(--signal-soft);color:var(--signal);border-color:var(--signal)}
+.pill.bad{background:var(--alert-soft);color:var(--alert);border-color:var(--alert)}
+.pill.mute{background:var(--panel-2);color:var(--muted);border-color:var(--line)}
+.pill.tap{cursor:pointer}
+.pill.tap:hover{filter:brightness(.97)}
+
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+.dot.live{animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+@media(prefers-reduced-motion:reduce){.dot.live{animation:none}}
+
+main{flex:1;padding:14px 14px 96px;display:flex;flex-direction:column;gap:12px}
+
+/* ---------- nav ---------- */
+.tabbar{
+  position:fixed;bottom:0;left:0;right:0;z-index:40;
+  background:var(--panel);border-top:1px solid var(--line);
+  display:flex;max-width:480px;margin:0 auto;
+  padding-bottom:env(safe-area-inset-bottom,0);
+}
+.tabbar button{
+  flex:1;padding:10px 4px 12px;display:flex;flex-direction:column;
+  align-items:center;gap:3px;color:var(--muted);
+  font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;
+  font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+  border-top:2px solid transparent;margin-top:-1px;
+}
+.tabbar button[aria-current="true"]{color:var(--accent);border-top-color:var(--accent)}
+.tabbar svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.7}
+.tabcount{
+  font-family:"IBM Plex Mono",monospace;font-size:10px;
+  background:var(--signal);color:var(--panel);border-radius:8px;
+  padding:0 5px;margin-left:4px;
+}
+
+/* ---------- headings ---------- */
+.eyebrow{
+  font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;
+  font-size:12px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+h2{
+  font-family:"Barlow Semi Condensed",sans-serif;font-weight:700;
+  font-size:24px;letter-spacing:.01em;margin:0;text-wrap:balance;line-height:1.1;
+}
+h3{
+  font-family:"Barlow Semi Condensed",sans-serif;font-weight:700;
+  font-size:15px;letter-spacing:.06em;text-transform:uppercase;margin:0;
+}
+
+/* ---------- cards ---------- */
+.card{
+  background:var(--panel);border:1px solid var(--line);border-radius:6px;
+  box-shadow:var(--shadow);overflow:hidden;
+}
+.card-pad{padding:13px 14px}
+.rec{
+  display:block;width:100%;text-align:left;
+  background:var(--panel);border:1px solid var(--line);border-radius:6px;
+  padding:11px 12px 10px;display:flex;flex-direction:column;gap:7px;
+  border-left:3px solid var(--line-strong);
+}
+.rec:hover{border-color:var(--line-strong);background:var(--panel-2)}
+.rec.pending{border-left-color:var(--signal)}
+.rec.synced{border-left-color:var(--accent)}
+.rec-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.rec-id{
+  font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:14.5px;
+  letter-spacing:-.01em;
+}
+.rec-type{
+  font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;font-size:13.5px;
+  letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2);
+}
+.rec-meta{
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted);
+  display:flex;flex-wrap:wrap;gap:4px 12px;font-variant-numeric:tabular-nums;
+}
+.rec-chips{display:flex;flex-wrap:wrap;gap:5px}
+
+/* ---------- buttons ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-height:48px;padding:0 18px;border-radius:5px;
+  font-family:"Barlow Semi Condensed",sans-serif;font-weight:700;
+  font-size:16px;letter-spacing:.06em;text-transform:uppercase;
+  border:1px solid var(--line-strong);background:var(--panel);color:var(--ink);
+  transition:filter .12s ease;
+}
+.btn:hover{filter:brightness(.96)}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--alert);border-color:var(--alert)}
+.btn.destruct{background:var(--alert);color:var(--alert-ink);border-color:var(--alert)}
+.btn.wide{width:100%}
+.btn.sm{min-height:38px;font-size:13.5px;padding:0 12px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:2}
+
+/* ---------- forms ---------- */
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.field label{
+  font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;
+  font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+}
+.field input,.field select,.field textarea{
+  background:var(--bg);border:1px solid var(--line-strong);border-radius:4px;
+  padding:11px 11px;min-height:46px;width:100%;
+}
+.field textarea{min-height:78px;resize:vertical;font-size:15px}
+.field input:focus,.field select:focus,.field textarea:focus{
+  outline:2px solid var(--accent);outline-offset:-1px;border-color:var(--accent);
+}
+.field .hint{font-size:12.5px;color:var(--muted);line-height:1.35}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+.mono-in{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+
+fieldset{border:none;padding:0;margin:0 0 4px}
+.sect{border-top:1px solid var(--line);padding-top:13px;margin-top:4px}
+.sect > h3{margin-bottom:11px;color:var(--ink-2)}
+
+/* ---------- gps card ---------- */
+.gps{border-left:3px solid var(--signal)}
+.gps.locked{border-left-color:var(--accent)}
+.readout{
+  font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+  display:grid;grid-template-columns:auto 1fr;gap:3px 14px;
+  font-size:13px;margin:10px 0 12px;
+}
+.readout dt{color:var(--muted);letter-spacing:.02em}
+.readout dd{margin:0;font-weight:500}
+.bar{height:5px;background:var(--panel-2);border-radius:3px;overflow:hidden;margin:10px 0 4px}
+.bar > i{display:block;height:100%;background:var(--accent);width:0;transition:width .35s ease}
+@media(prefers-reduced-motion:reduce){.bar > i{transition:none}}
+.acc-big{
+  font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:30px;
+  line-height:1;font-variant-numeric:tabular-nums;
+}
+.acc-big small{font-size:14px;font-weight:400;color:var(--muted);margin-left:3px}
+
+.notice{
+  border-radius:5px;padding:10px 12px;font-size:14px;line-height:1.4;
+  border:1px solid;display:flex;gap:9px;align-items:flex-start;
+}
+.notice.warn{background:var(--signal-soft);border-color:var(--signal);color:var(--signal)}
+.notice.bad{background:var(--alert-soft);border-color:var(--alert);color:var(--alert)}
+.notice.ok{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.notice b{font-weight:600}
+.notice svg{width:18px;height:18px;flex-shrink:0;margin-top:2px;stroke:currentColor;fill:none;stroke-width:2}
+
+/* ---------- photos ---------- */
+.shots{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.shot{
+  position:relative;aspect-ratio:4/3;border-radius:5px;overflow:hidden;
+  border:1px dashed var(--line-strong);background:var(--panel-2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:6px;padding:8px;text-align:center;width:100%;
+}
+.shot.filled{border-style:solid;border-color:var(--accent);padding:0}
+.shot img{width:100%;height:100%;object-fit:cover;display:block}
+.shot .lbl{
+  font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;font-size:12.5px;
+  letter-spacing:.05em;text-transform:uppercase;color:var(--muted);line-height:1.15;
+}
+.shot svg{width:22px;height:22px;stroke:var(--muted);fill:none;stroke-width:1.7}
+.shot .x{
+  position:absolute;top:5px;right:5px;width:26px;height:26px;border-radius:50%;
+  background:rgba(0,0,0,.62);color:#fff;display:flex;align-items:center;
+  justify-content:center;font-size:15px;line-height:1;
+}
+
+/* ---------- plot ---------- */
+.plotwrap{position:relative;background:var(--panel-2)}
+canvas{display:block;width:100%;height:200px}
+.plotkey{
+  display:flex;gap:14px;padding:8px 12px;border-top:1px solid var(--line);
+  font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);
+  flex-wrap:wrap;
+}
+.plotkey span{display:flex;align-items:center;gap:5px}
+.sw{width:9px;height:9px;border-radius:50%}
+
+/* ---------- overlay ---------- */
+.overlay{
+  position:fixed;inset:0;z-index:60;background:var(--bg);
+  max-width:480px;margin:0 auto;display:flex;flex-direction:column;
+  border-left:1px solid var(--frame);border-right:1px solid var(--frame);
+}
+.ovbar{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:var(--panel);border-bottom:1px solid var(--line);flex-shrink:0;
+}
+.ovbar h2{font-size:19px;flex:1;min-width:0}
+.ovbody{flex:1;overflow-y:auto;padding:13px 14px 20px;-webkit-overflow-scrolling:touch}
+.ovfoot{
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));
+  background:var(--panel);border-top:1px solid var(--line);
+  display:flex;gap:9px;flex-shrink:0;
+}
+.ovfoot .btn{flex:1}
+
+/* ---------- misc ---------- */
+.empty{
+  text-align:center;padding:34px 20px;color:var(--muted);
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+}
+.empty svg{width:38px;height:38px;stroke:var(--line-strong);fill:none;stroke-width:1.4}
+.empty p{margin:0;font-size:14.5px;max-width:30ch;line-height:1.45}
+.kv{
+  display:grid;grid-template-columns:minmax(110px,auto) 1fr;gap:2px 14px;
+  font-size:14px;
+}
+.kv dt{
+  font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;font-size:12.5px;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding-top:2px;
+}
+.kv dd{margin:0 0 7px;font-family:"IBM Plex Mono",monospace;font-size:13px;word-break:break-word}
+.stack{display:flex;flex-direction:column;gap:9px}
+.row{display:flex;gap:9px;align-items:center}
+.spread{display:flex;gap:9px;align-items:center;justify-content:space-between}
+textarea.csv{
+  width:100%;min-height:130px;font-family:"IBM Plex Mono",monospace;font-size:11.5px;
+  background:var(--bg);border:1px solid var(--line-strong);border-radius:4px;
+  padding:9px;white-space:pre;overflow-x:auto;line-height:1.5;
+}
+.tagrow{
+  display:flex;align-items:center;gap:10px;padding:9px 12px;
+  border-bottom:1px solid var(--line);
+}
+.tagrow:last-child{border-bottom:none}
+.tagrow input[type=checkbox]{width:21px;height:21px;accent-color:var(--accent);flex-shrink:0}
+.tagrow .who{flex:1;min-width:0}
+.tagrow .who b{font-family:"IBM Plex Mono",monospace;font-size:13.5px;font-weight:600;display:block}
+.tagrow .who span{font-size:12.5px;color:var(--muted)}
+.toast{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:78px;z-index:80;
+  background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:4px;
+  font-family:"Barlow Semi Condensed",sans-serif;font-weight:600;font-size:14px;
+  letter-spacing:.04em;text-transform:uppercase;box-shadow:var(--shadow);
+  opacity:0;pointer-events:none;transition:opacity .2s ease;
+}
+.toast.show{opacity:1}
+@media(prefers-reduced-motion:reduce){.toast{transition:none}}
+.tagpreview{
+  border:1.5px solid var(--ink);border-radius:4px;padding:9px 11px;background:var(--panel);
+  display:flex;gap:11px;align-items:center;
+}
+.tagpreview .qr{width:64px;height:64px;flex-shrink:0;background:#fff;border-radius:2px}
+.tagpreview .qr svg{display:block;width:100%;height:100%}
+.tagpreview .txt{font-family:"IBM Plex Mono",monospace;line-height:1.35;min-width:0}
+.tagpreview .txt b{font-size:14px;font-weight:600;display:block;letter-spacing:-.02em}
+.tagpreview .txt span{font-size:10.5px;color:var(--muted);display:block}
+
+/* ---------- confirm dialog ---------- */
+.askwrap{
+  position:fixed;inset:0;z-index:90;background:rgba(10,14,10,.5);
+  display:flex;align-items:center;justify-content:center;padding:22px;
+}
+.askbox{
+  background:var(--panel);border:1px solid var(--line-strong);border-radius:7px;
+  max-width:350px;width:100%;padding:16px;box-shadow:var(--shadow);
+  display:flex;flex-direction:column;gap:13px;
+}
+.askbox p{margin:0;font-size:15px;line-height:1.4;color:var(--ink)}
+.askbox .row{gap:9px}
+.askbox .btn{flex:1}
+
+/* ---------- scanner ---------- */
+.scanbox{
+  position:relative;width:100%;aspect-ratio:1/1;border-radius:6px;overflow:hidden;
+  background:#0B0D0A;border:1px solid var(--line-strong);
+}
+.scanbox video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.scanframe{
+  position:absolute;inset:16%;border:2px solid rgba(255,255,255,.85);border-radius:8px;
+  box-shadow:0 0 0 999px rgba(0,0,0,.28);pointer-events:none;
+}
+.scanmsg{
+  font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--muted);
+  margin:0;text-align:center;
+}
+.btnrow{display:flex;gap:9px}
+.btnrow .btn{flex:1}
+
+/* ---------- printable tags (always black on white: it is a physical label) ---------- */
+.sheet{display:grid;grid-template-columns:repeat(auto-fill,2.6in);gap:.14in;justify-content:center}
+.ptag{
+  width:2.6in;height:1.3in;background:#fff;color:#000;border:1px solid #000;border-radius:3px;
+  display:flex;align-items:center;gap:.09in;padding:.08in .1in;overflow:hidden;
+  break-inside:avoid;page-break-inside:avoid;
+}
+.ptag .qr{width:1.1in;height:1.1in;flex-shrink:0}
+.ptag .qr svg{display:block;width:100%;height:100%}
+.ptag .txt{display:flex;flex-direction:column;gap:.02in;min-width:0;font-family:"IBM Plex Mono",monospace;line-height:1.2}
+.ptag .txt b{font-size:10.5pt;font-weight:600;letter-spacing:-.02em;word-break:break-all}
+.ptag .txt span{font-size:7pt;text-transform:uppercase;letter-spacing:.02em}
+.ptag .txt .brand{font-family:"Barlow Semi Condensed",sans-serif;font-weight:700;font-size:7.5pt;letter-spacing:.08em}
+
+@media print{
+  @page{margin:.4in}
+  html,body{background:#fff !important;overflow:visible !important}
+  .app,.tabbar,.toast,#ask-root,.ovbar,.ovfoot,.noprint{display:none !important}
+  .overlay{position:static !important;inset:auto !important;max-width:none !important;
+           border:none !important;background:#fff !important;display:block !important}
+  .ovbody{overflow:visible !important;padding:0 !important}
+}
 </style>
-</head>
-<body>
 
-<header>
-  <h1>Pipe Reel Designer</h1>
-  <span class="sub">Specialty RTP &mdash; parametric from <em>Pricing Tool v8 &rsaquo; Reel Plan</em></span>
-  <span class="spacer"></span>
-  <button id="btnSvg">Download SVG</button>
-  <button id="btnDxf">Download DXF</button>
-  <button id="btnBom">Copy BOM</button>
-  <button id="btnPrint" class="primary">Print / PDF</button>
-</header>
-
-<div class="wrap">
-
-<div class="panel-col">
-
-  <div class="card">
-    <h2>Reel <span class="tag" id="tagSrc">catalogue</span></h2>
-    <div class="row full"><select id="preset"></select></div>
-    <div class="row full" style="margin-top:8px">
-      <div style="font:600 20px/1.2 ui-monospace,Consolas,monospace;letter-spacing:.01em"
-           id="partno">SP192-HD160-T92</div>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <b>Splice Logger</b>
+      <span class="jobline" id="jobline">—</span>
     </div>
-    <div class="note" style="margin-top:2px" id="presetNote"></div>
-    <div class="row wide" style="margin-top:10px"><label>Sheet views</label>
-      <select id="layout">
-        <option value="iso">Front + side + isometric</option>
-        <option value="ortho">Front + side only</option>
-        <option value="isoonly">Isometric only</option>
-      </select></div>
-    <div class="row wide"><label>Isometric style</label>
-      <select id="isoStyle">
-        <option value="solid">Solid (hidden lines removed)</option>
-        <option value="wire">Wireframe (see-through)</option>
-      </select></div>
-  </div>
-
-  <div class="card">
-    <h2>Principal dimensions <span class="tag">inches</span></h2>
-
-    <div class="slrow"><input type="range" id="spR" min="24" max="240" step="1">
-                       <input type="number" id="sp" step="0.5"></div>
-    <p class="slcap">Spool OD (flange outside diameter)</p>
-
-    <div class="slrow"><input type="range" id="hdR" min="18" max="230" step="1">
-                       <input type="number" id="hd" step="0.5"></div>
-    <p class="slcap">Hub OD — the traverse pitch circle</p>
-
-    <div class="slrow"><input type="range" id="tvR" min="12" max="140" step="0.5">
-                       <input type="number" id="tv" step="0.5"></div>
-    <p class="slcap">Traverse (clear width between flanges)</p>
-
-    <dl class="derived">
-      <dt>Wind depth &mdash; (SP &minus; HD) / 2</dt><dd id="dDepth">&mdash;</dd>
-      <dt>Overall width</dt><dd id="dWidth">&mdash;</dd>
-      <dt>Drum surface area</dt><dd id="dArea">&mdash;</dd>
-      <dt>Traverses <small>one per spoke</small></dt><dd id="dNbat">&mdash;</dd>
-      <dt>Traverse pitch <small>arc, on the hub circle</small></dt><dd id="dPitch">&mdash;</dd>
-      <dt>Clear gap between traverses</dt><dd id="dGap">&mdash;</dd>
-      <dt>Drum coverage</dt><dd id="dCover">&mdash;</dd>
-    </dl>
-  </div>
-
-  <div class="card">
-    <h2>Pipe &amp; capacity <span class="tag">Reel Plan model</span></h2>
-    <div class="row"><label>Finished pipe OD <small>Reel Plan!B4</small></label>
-                     <input type="number" id="pod" step="0.01"></div>
-    <div class="row"><label>Pipe weight <small>lb/ft &mdash; Reel Plan!B6</small></label>
-                     <input type="number" id="plf" step="0.0001"></div>
-    <div class="row"><label>Project length <small>ft &mdash; Reel Plan!B5</small></label>
-                     <input type="number" id="plen" step="100"></div>
-    <div class="row"><label>Min bend ratio <small>hub OD / pipe OD</small></label>
-                     <input type="number" id="bmin" step="1"></div>
-    <div class="row"><label>Max reel weight <small>lbs, 0 = no limit</small></label>
-                     <input type="number" id="wmax" step="500"></div>
-
-    <div id="checks" style="margin-top:10px"></div>
-
-    <dl class="derived" style="margin-top:8px">
-      <dt>Wraps that fit</dt><dd id="dWraps">&mdash;</dd>
-      <dt>Capacity</dt><dd id="dCap">&mdash;</dd>
-      <dt>Braid target / reel <small>&times;1.01</small></dt><dd id="dBraid">&mdash;</dd>
-      <dt>Base tube target / reel <small>&times;1.01 + 10</small></dt><dd id="dBase">&mdash;</dd>
-      <dt>Reels needed</dt><dd id="dReels">&mdash;</dd>
-      <dt>Length on last reel</dt><dd id="dLast">&mdash;</dd>
-    </dl>
-  </div>
-
-  <div class="card">
-    <h2>Load on this reel <span class="tag" id="tagFill"></span></h2>
-    <div class="row"><label>Pipe on reel</label>
-      <select id="fillMode">
-        <option value="full">Full &mdash; wound to capacity</option>
-        <option value="spec">Specified length</option>
-      </select></div>
-    <div class="row" id="rowFill"><label>Length on reel <small>ft</small></label>
-      <input type="number" id="fillLen" step="10"></div>
-    <button id="btnLastReel" style="margin-bottom:8px">Use last-reel length</button>
-    <div id="fillWarn"></div>
-    <dl class="derived">
-      <dt>Pipe on reel</dt><dd id="dOnReel">&mdash;</dd>
-      <dt>Fill</dt><dd id="dPct">&mdash;</dd>
-      <dt>Layers wound</dt><dd id="dLayers">&mdash;</dd>
-      <dt>OD over pipe</dt><dd id="dOdNow">&mdash;</dd>
-      <dt>Radial freeboard to flange</dt><dd id="dFree">&mdash;</dd>
-      <dt>Pipe weight on reel</dt><dd id="dWfull">&mdash;</dd>
-      <dt>Reel tare</dt><dd id="dTare">&mdash;</dd>
-      <dt>Gross weight</dt><dd id="dWgross">&mdash;</dd>
-    </dl>
-  </div>
-
-  <div class="card">
-    <h2>Fabrication detail</h2>
-    <div class="row"><label>Spokes per side <small>one traverse lands on each</small></label>
-      <input type="number" id="nspoke" step="1" min="3"></div>
-    <div class="row"><label>Spoke tube <small>note 2</small></label>
-      <select id="spokeTube"></select></div>
-    <div class="row"><label>Ring tube <small>note 6</small></label>
-      <select id="ringTube"></select></div>
-    <div class="row"><label>Circumferential rings <small>per side, incl. rim + hub ring</small></label>
-      <input type="number" id="nring" step="1" min="2"></div>
-    <div class="row"><label>Spoke inner dia <small>hub boss the spokes land on</small></label>
-      <input type="number" id="spokeid" step="0.25"></div>
-    <div class="row"><label>Drum construction</label>
-      <select id="drumType">
-        <option value="batten+wrap">Traverses + wrapper plate</option>
-        <option value="batten">Traverses only (as drawn)</option>
-        <option value="shell">Rolled plate shell</option>
-      </select></div>
-    <div class="row"><label>Traverse material</label>
-      <select id="batMat">
-        <option value="wood">Timber plank</option>
-        <option value="steel">Steel tube</option>
-      </select></div>
-    <div class="row" id="rowLumber"><label>Plank size <small>nominal</small></label>
-      <select id="batLumber"></select></div>
-    <div class="row" id="rowWoodDens"><label>Timber density <small>lb/ft³</small></label>
-      <input type="number" id="woodDens" step="1"></div>
-    <div class="row" id="rowBatTube"><label>Traverse tube</label><select id="batTube"></select></div>
-    <div class="row"><label>Wrapper / shell thickness</label><input type="number" id="tdrum" step="0.0625"></div>
-    <div class="row"><label>Drum stiffener rings</label><input type="number" id="nstiff" step="1" min="0"></div>
-    <div class="row"><label>Stiffener width &times; thk</label>
-      <div class="tb2"><input type="number" id="wstiff" step="0.5"><input type="number" id="tstiff" step="0.0625"></div></div>
-    <div class="row"><label>Arbor OD &times; wall</label>
-      <div class="tb2"><input type="number" id="arbod" step="0.25"><input type="number" id="arbwall" step="0.0625"></div></div>
-    <div class="row"><label>Arbor stick-out <small>each end</small></label><input type="number" id="arbout" step="1"></div>
-    <div class="row"><label>Flange rim plate width <small>0 = spoked rim only</small></label>
-      <input type="number" id="wrim" step="1"></div>
-    <div class="row"><label>Rim plate thickness</label><input type="number" id="trim" step="0.0625"></div>
-    <div class="row"><label>Weld / lift allowance <small>% of subtotal</small></label>
-      <input type="number" id="allow" step="0.001"></div>
-  </div>
-
-  <div class="card">
-    <h2>Estimated weight <span class="tag" id="tagW"></span></h2>
-    <table id="bom"><tbody></tbody></table>
-    <div class="row" style="margin-top:10px"><label>Calibrate allowance to <small>lbs — solves the allowance % so the total lands here</small></label>
-      <input type="number" id="target" step="1"></div>
-    <button id="btnCal">Solve allowance</button>
-  </div>
-
-  <div class="card">
-    <h2>Title block</h2>
-    <div class="row"><label>Drawn by / date</label>
-      <div class="tb2"><input type="text" id="dwgby"><input type="text" id="dwgdate"></div></div>
-    <div class="row"><label>Checked by / date</label>
-      <div class="tb2"><input type="text" id="chkby"><input type="text" id="chkdate"></div></div>
-    <div class="row"><label>Approved by / date</label>
-      <div class="tb2"><input type="text" id="apvby"><input type="text" id="apvdate"></div></div>
-    <div class="row wide"><label>Material type</label><input type="text" id="matl"></div>
-    <div class="row wide"><label>Coating</label><input type="text" id="coat"></div>
-    <div class="row wide"><label>Drawing no. <small>blank = part no.</small></label><input type="text" id="dwgno"></div>
-    <div class="row"><label>Rev / sheet</label>
-      <div class="tb2"><input type="text" id="rev"><input type="text" id="sheet"></div></div>
-    <div class="row wide"><label>Rev description</label><input type="text" id="revdesc"></div>
-  </div>
-
-  <div class="card noprint">
-    <h2>Reset</h2>
-    <button id="btnResetDims">Reset dimension positions</button>
-    <button id="btnReset">Restore SP192-HD160-T92 defaults</button>
-  </div>
-
-</div><!-- /panel -->
-
-<div>
-  <div class="sheetwrap"><div id="sheetView"></div></div>
-  <p class="note" id="footnote"></p>
-
-  <div class="card noprint" style="margin-top:12px">
-    <h2>Reel Plan catalogue <span class="tag">18 reels</span></h2>
-    <div class="scroll">
-      <table id="cat">
-        <thead><tr><th>Part no.</th><th>SP</th><th>HD</th><th>T</th><th>Bend</th>
-          <th>Wraps</th><th>Cap (ft)</th><th>Reels</th><th>Gross (lb)</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-    <p class="note">Rows are the catalogue on <b>Reel Plan!A11:D28</b> of
-      <i>Pricing Tool - v8 (Design Optimizer).xlsx</i>. Capacity is recomputed here with the
-      workbook's own wrap model at the pipe OD above. Greyed rows fail the bend-ratio or
-      weight limit. Click any row to load it.</p>
-  </div>
+    <div class="statuses" id="statuses"></div>
+  </header>
+  <main id="main"></main>
 </div>
 
-</div><!-- /wrap -->
+<nav class="tabbar" id="tabbar"></nav>
+<div class="toast" id="toast"></div>
+<div id="overlay-root"></div>
+<div id="ask-root"></div>
+<input type="file" id="restoreinput" accept="application/json,.json" hidden>
+<input type="file" id="scanphotoinput" accept="image/*" hidden>
+
+<!-- QR drawing and QR reading. Loaded up front so the scanner still works after you lose signal. -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 
 <script>
 "use strict";
 
-/* ---------- constants -------------------------------------------------- */
-const DENS = 0.2836;                       // lb/in^3, steel
-const CAT = [                              // Reel Plan!A11:D28
-  ["SP42-HD30-T48",      42,  30,  48   ],
-  ["SP54-HD40-T48",      54,  40,  48   ],
-  ["SP60-HD42-T48",      60,  42,  48   ],
-  ["SP96-HD42-T44.5",    96,  42,  44.5 ],
-  ["SP96-HD42-T48",      96,  42,  48   ],
-  ["SP96-HD42-T56",      96,  42,  56   ],
-  ["SP96-HD60-T48",      96,  60,  48   ],
-  ["SP96-HD68-T56",      96,  68,  56   ],
-  ["SP124-HD72-T80",    124,  72,  80   ],
-  ["SP124-HD72-T88",    124,  72,  88   ],
-  ["SP144-HD72-T88",    144,  72,  88   ],
-  ["SP144-HD100-T80",   144, 100,  80   ],
-  ["SP144-HD100-T92",   144, 100,  92   ],
-  ["SP144-HD108-T88",   144, 108,  88   ],
-  ["SP144-HD116-T88",   144, 116,  88   ],
-  ["SP174-HD144-T92",   174, 144,  92   ],
-  ["SP174-HD148-T80",   174, 148,  80   ],
-  ["SP174-HD148-T92",   174, 148,  92   ]
-];
-const REF = ["SP192-HD160-T92", 192, 160, 92];   // the source assembly drawing
-/* nominal lumber -> dressed size. First number is the radial thickness (the
-   plank lies flat, wide face out), second the width around the circumference. */
-const LUMBER = [
-  ["2 x 4",  1.5, 3.5 ], ["2 x 6",  1.5, 5.5 ], ["2 x 8",  1.5, 7.25],
-  ["2 x 10", 1.5, 9.25], ["2 x 12", 1.5, 11.25],
-  ["3 x 6",  2.5, 5.5 ], ["3 x 8",  2.5, 7.25],
-  ["4 x 6",  3.5, 5.5 ], ["4 x 8",  3.5, 7.25]
-];
-const TUBES = [                                   // b (in), wall (in)
-  [2,0.1875],[2,0.25],[2,0.3125],[2,0.375],
-  [2.5,0.25],[2.5,0.375],[3,0.25],[3,0.3125],[3,0.375],[3,0.5],
-  [4,0.25],[4,0.375],[4,0.5]
-];
-const TODAY = (()=>{ const d = new Date(), p2 = n => String(n).padStart(2,"0");
-  return p2(d.getMonth()+1)+"/"+p2(d.getDate())+"/"+String(d.getFullYear()).slice(-2); })();
+/* ============ constants ============ */
+const KEY = "srtp-splice-log-v3";
+const DUP_FT = 50;              // duplicate-guard radius
+const AVG_TARGET = 12;          // readings to average per fix
+const AVG_TIMEOUT = 22000;
+
+const SPLICE_TYPES = ["Splice","Flange end"];
+const PIPE_SIZES = ['2.375"','3"','3.5"','4"','4.5"','5"','5.5"','6"'];
+const MATERIALS = ["Stainless steel","Zinc chromate"];
+// suggestions only: the fields accept anything, since fitting sizes and ratings vary by customer
+const FIT_SIZES = ['2"','2.5"','3"','4"','5"','6"','8"'];
+const FIT_CLASSES = ["150#","300#","600#","900#","1500#","2500#","API 2000","API 3000","API 5000"];
+const MAX_PHOTOS = 12;
+
+/* ============ storage ============ */
 const DEFAULTS = {
-  sp:192, hd:160, tv:92,
-  pod:6.23, plf:4.0939, plen:65600, bmin:20, wmax:0,
-  nspoke:16, spokeTube:"2x0.25", ringTube:"2x0.375", nring:1, spokeid:8,
-  drumType:"batten", batTube:"2x0.375",
-  batMat:"wood", batLumber:"1.5x5.5", woodDens:35,
-  tdrum:0.125, nstiff:0, wstiff:4, tstiff:0.375,
-  arbod:4, arbwall:0.5, arbout:0,
-  wrim:0, trim:0.5, allow:8, target:6376, layout:"iso", isoStyle:"solid",
-  fillMode:"full", fillLen:1000,
-  dwgby:"DW", dwgdate:TODAY, chkby:"", chkdate:"",
-  apvby:"", apvdate:"", matl:"", coat:"", dwgno:"", rev:"-", sheet:"1 OF 1",
-  revdesc:"Initial Release"
+  settings:{ job:"", crew:"A", tech:"", tagBase:"" },
+  records:[], seq:{}
 };
-const NUMKEYS = ["sp","hd","tv","pod","plf","plen","bmin","wmax","nspoke","nring",
-  "spokeid","tdrum","nstiff","wstiff","tstiff","arbod","arbwall","arbout",
-  "wrim","trim","allow","target","woodDens","fillLen"];
-const TXTKEYS = ["dwgby","dwgdate","chkby","chkdate","apvby","apvdate","matl","coat",
-  "dwgno","rev","sheet","revdesc"];
-const SELKEYS = ["spokeTube","ringTube","batTube","drumType","layout","isoStyle",
-  "batMat","batLumber","fillMode"];
+let db = load();
 
-/* ---------- small helpers ---------------------------------------------- */
-const $  = id => document.getElementById(id);
-const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-const fmt = n => Number(Number(n).toFixed(3)).toString();
-const com = (n,d=0) => Number(n).toLocaleString("en-US",
-                        {minimumFractionDigits:d,maximumFractionDigits:d});
-const tubeLbFt = (b,t) => (b*b - Math.max(b-2*t,0)**2) * DENS * 12;
-const tubeName = (b,t) => fmt(b)+'" x '+fmt(b)+'" x '+frac(t);
-function frac(t){
-  const sixt = Math.round(t*16);
-  if(Math.abs(t*16-sixt) > 1e-6) return fmt(t)+'"';
-  if(sixt%16===0) return (sixt/16)+'"';
-  let n=sixt, d=16; while(n%2===0){n/=2;d/=2;}
-  const w=Math.floor(n/d), r=n-w*d;
-  return (w? w+"-":"") + r + "/" + d + '"';
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw){
+      const d = Object.assign({}, DEFAULTS, JSON.parse(raw));
+      // photos used to be six fixed slots padded with nulls; collapse to a plain list
+      (d.records || []).forEach(r => { r.photos = (r.photos || []).filter(Boolean); });
+      return d;
+    }
+  }catch(e){}
+  return JSON.parse(JSON.stringify(DEFAULTS));
+}
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(db)); }
+  catch(e){
+    const full = e && (e.name === "QuotaExceededError" || e.code === 22);
+    toast(full ? "Storage full — remove some photos or export a backup"
+               : "This browser won't let the page save — records vanish when it closes");
+  }
 }
 
-/* ---------- the Reel Plan wrap model ------------------------------------
-   Reproduces Reel Plan cols Q..BH (OD after wrap n) and BJ..DA (cum length):
-     Q  = ROUNDDOWN(hubOD + 2*pipeOD, 0);  next = ROUNDDOWN(prev + 2*pipeOD, 0)
-     BJ = (hubOD * PI * (traverse/pipeOD)) / 12 ;  next += (prevOD * PI * turns)/12
-     wraps    = MATCH(spoolOD, Q:BH, 1)      (0 when none fits)
-     capacity = INDEX(BJ:DA, wraps)
-------------------------------------------------------------------------- */
-function wrapModel(spoolOD, hubOD, traverse, pipeOD){
-  const out = {wraps:0, cap:0, odLast:hubOD, ods:[], cums:[]};
-  if(!(pipeOD>0) || !(traverse>0) || !(hubOD>0)) return out;
-  const turns = traverse / pipeOD;
-  let d = hubOD, cum = 0;
-  for(let k=0; k<60; k++){
-    cum += (d * Math.PI * turns) / 12;
-    const odAfter = Math.floor(d + 2*pipeOD);
-    out.ods.push(odAfter); out.cums.push(cum);
-    if(odAfter <= d) break;                 // guard
-    d = odAfter;
-    if(odAfter > spoolOD + 4*pipeOD) break; // no point going further
-  }
-  let n = 0;
-  for(let i=0;i<out.ods.length;i++){ if(out.ods[i] <= spoolOD) n = i+1; else break; }
-  out.wraps = n;
-  out.cap   = n ? out.cums[n-1] : 0;
-  out.odLast = n ? out.ods[n-1] : hubOD;
-  return out;
+/* ============ helpers ============ */
+const $ = s => document.querySelector(s);
+const esc = s => String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast._t); toast._t = setTimeout(()=>t.classList.remove("show"), 2100);
 }
 
-/* ---------- weight take-off --------------------------------------------
-   Calibrated against the source drawing: SP192-HD160-T92 with the shipped
-   defaults returns 6,376 lbs (note 17 on OVERALL ASSEMBLY DRAFT DWG).
-------------------------------------------------------------------------- */
-function takeoff(p){
-  const items = [];
-  const add = (desc, qty, lbEach, mat) => { if(lbEach>0 && qty>0)
-      items.push({desc, qty, each:lbEach, total:qty*lbEach, mat:mat||"steel"}); };
-
-  // 1. drum -- longitudinal battens and/or a rolled wrapper plate
-  const tD = p.tdrum;
-  if(p.drumType !== "shell"){
-    add("Traverse, " + p.batDesc + " x " + fmt(p.tv) + String.fromCharCode(34) + " lg",
-        Math.round(p.nbat), p.tv/12 * p.batLbFt, p.batMat === "wood" ? "wood" : "steel");
-  }
-  if(p.drumType !== "batten"){
-    const what = p.drumType === "shell" ? "Drum shell, rolled plate "
-                                        : "Drum wrapper plate, rolled ";
-    add(what + frac(tD) + " x " + fmt(p.tv) + '" lg', 1,
-        Math.PI * Math.max(p.hd - tD, 0) * tD * p.tv * DENS);
-  }
-
-  // 2. internal stiffener rings in the drum
-  const sOD = p.hd - 2*tD, sID = Math.max(sOD - 2*p.wstiff, 0);
-  add("Drum stiffener ring, " + frac(p.tstiff) + " plate x " + fmt(p.wstiff) + '" wide',
-      p.nstiff, Math.PI/4 * (sOD*sOD - sID*sID) * p.tstiff * DENS);
-
-  // 3. circumferential rings, rolled tube -- outer at SP, inner at HD, rest between
-  const rl = tubeLbFt(p.ringB, p.ringT);
-  const nr = Math.max(1, Math.round(p.nring));
-  for(let i=0;i<nr;i++){
-    const dia = p.sp - (p.sp - p.hd) * i/nr;   // never lands on the traverse circle
-    add("Circumferential ring, " + tubeName(p.ringB,p.ringT) + " rolled to " + fmt(dia) + '" dia',
-        2, Math.PI * dia / 12 * rl);
-  }
-
-  // 4. spokes -- full radius, hub boss out to the rim (see the isometric)
-  const sl = Math.max((p.sp - p.spokeid)/2, 0);
-  add("Spoke, " + tubeName(p.spokeB,p.spokeT) + " x " + fmt(sl) + '" lg',
-      2*Math.round(p.nspoke), sl/12 * tubeLbFt(p.spokeB,p.spokeT));
-
-  // 5. arbor
-  const aID = Math.max(p.arbod - 2*p.arbwall, 0), aL = p.tv + 2*p.arbout;
-  add("Arbor tube, " + fmt(p.arbod) + '" OD x ' + frac(p.arbwall) + " wall x " + fmt(aL) + '" lg',
-      1, Math.PI/4 * (p.arbod*p.arbod - aID*aID) * aL * DENS);
-
-  // 6. optional flange rim plate
-  if(p.wrim > 0){
-    const rID = Math.max(p.sp - 2*p.wrim, 0);
-    add("Flange rim plate, " + frac(p.trim) + " x " + fmt(p.wrim) + '" wide', 2,
-        Math.PI/4 * (p.sp*p.sp - rID*rID) * p.trim * DENS);
-  }
-
-  const sub = items.reduce((a,b)=>a+b.total, 0);
-  const steel = items.filter(i=>i.mat==="steel").reduce((a,b)=>a+b.total, 0);
-  const wood  = items.filter(i=>i.mat==="wood" ).reduce((a,b)=>a+b.total, 0);
-  const allow = sub * p.allow/100;
-  return {items, sub, steel, wood, allow, total: sub + allow};
+function nextId(){
+  const {job,crew} = db.settings;
+  const k = job+"-"+crew;
+  db.seq[k] = (db.seq[k]||0) + 1;
+  return job+"-"+crew+"-"+String(db.seq[k]).padStart(4,"0");
 }
 
-/* ---------- notes ------------------------------------------------------- */
-function noteList(p){
-  const ang = 360/Math.round(p.nspoke);
-  const words = ["","ONE","TWO","THREE","FOUR","FIVE","SIX","SEVEN","EIGHT","NINE","TEN",
-    "ELEVEN","TWELVE","THIRTEEN","FOURTEEN","FIFTEEN","SIXTEEN","SEVENTEEN","EIGHTEEN",
-    "NINETEEN","TWENTY"];
-  const n = Math.round(p.nspoke);
-  const nw = words[n] || String(n);
-  const drumNote =
-    p.drumType === "shell"
-      ? "DRUM SHALL BE " + frac(p.tdrum) + " ROLLED PLATE, " + fmt(p.hd) + '" OD.'
-      : "PROVIDE " + Math.round(p.nbat) + " LONGITUDINAL TRAVERSES, " + p.batNote +
-        ", ONE " + (p.batMat === "wood" ? "FASTENED" : "WELDED") + " TO EACH SPOKE" +
-        (p.drumType === "batten" ? "." :
-         ", WRAPPED WITH " + frac(p.tdrum) + " ROLLED PLATE.");
-  return [
-    "STRUCTURAL STEEL SHALL BE ASTM A36 OR EQUIVALENT.",
-    "SPOKES SHALL BE " + tubeName(p.spokeB,p.spokeT).replace(/"/g,'"') + " SQUARE TUBING.",
-    "ALL PLATE COMPONENTS (FLANGES, HUB, LIFT COMPONENTS, ETC.) SHALL BE ASTM A36 OR "+
-      "EQUIVALENT UNLESS OTHERWISE NOTED.",
-    "GRIND ALL WELD SURFACES AND SHALL BE SMOOTH AND FREE OF BURRS.",
-    "PROVIDE " + nw + " (" + n + ") SPOKES PER SIDE, EQUALLY SPACED (" +
-      fmt(ang) + "°) AS SHOWN.",
-    "INSTALL ROLLED CIRCUMFERENTIAL RINGS " + tubeName(p.ringB,p.ringT) +
-      " TUBING AS CIRCUMFERENTIAL REINFORCEMENT.",
-    drumNote,
-    "SPOKES SHALL RUN FULL RADIUS FROM THE " + fmt(p.spokeid) +
-      '" DIA HUB BOSS TO THE FLANGE RIM.',
-    "THE " + fmt(p.hd) + '" HUB DIAMETER IS MEASURED TO THE OUTSIDE FACE OF THE '+
-      "TRAVERSES, WHICH IS THE WINDING SURFACE.",
-    "ALL LIFTING FEATURES SHALL BE DESIGNED TO SUPPORT FULL LOAD WITH A MINIMUM "+
-      "SAFETY FACTOR OF 3:1.",
-    "ALL WELDING SHALL CONFORM TO AMERICAN WELDING SOCIETY AWS D1.1.",
-    "PROVIDE CONTINUOUS FILLET WELDS UNLESS OTHERWISE SPECIFIED.",
-    "REMOVE ALL SLAG, SPATTER, AND SHARP EDGES.",
-    "MAINTAIN FLANGE PARALLELISM.",
-    "ALL DIMENSIONS ARE IN INCHES.",
-    "GRIND WELDS FLUSH WHERE REQUIRED FOR FIT-UP OR FUNCTIONAL SURFACES.",
-    "VERIFY ALL CRITICAL DIMENSIONS PRIOR TO FABRICATION.",
-    "ALL COMPONENTS SHALL BE FREE OF WARPING, TWIST, OR DISTORTION AFTER WELDING.",
-    "DO NOT SCALE DRAWING FOR DIMENSIONS.",
-    "ESTIMATED WEIGHT: " + com(Math.round(p.weight)) + " LBS."
-  ];
+function feetBetween(a,b){
+  const R = 20902231; // earth radius, feet
+  const rad = d => d*Math.PI/180;
+  const dLat = rad(b.lat-a.lat), dLon = rad(b.lon-a.lon);
+  const h = Math.sin(dLat/2)**2 + Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.min(1,Math.sqrt(h)));
 }
-function wrapText(t, max){
-  const w = t.split(" "), out = []; let line = "";
-  for(const word of w){
-    if(line && (line.length + 1 + word.length) > max){ out.push(line); line = word; }
-    else line = line ? line + " " + word : word;
-  }
-  if(line) out.push(line);
-  return out;
+function fmtFt(ft){
+  if(ft < 1000) return Math.round(ft)+" ft";
+  return (ft/5280).toFixed(2)+" mi";
+}
+function fmtDate(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined,{month:"short",day:"numeric"})+" "+
+         d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});
+}
+function fmtCoord(n){ return n==null ? "—" : n.toFixed(6); }
+const isInstalled = r => !!(r && r.pos);
+
+/* IDs are JOB-CREW-NNNN; the job itself may contain dashes. */
+function idParts(id){
+  const p = String(id||"").split("-");
+  if(p.length < 3) return null;
+  return { job:p.slice(0,-2).join("-"), crew:p[p.length-2], seq:parseInt(p[p.length-1],10), key:p.slice(0,-1).join("-") };
+}
+function jobOf(r){ return r.job || (idParts(r.id)||{}).job || db.settings.job || ""; }
+/* A tag made on another device must never be re-issued by this one. */
+function bumpSeq(id){
+  const p = idParts(id);
+  if(p && isFinite(p.seq) && (db.seq[p.key]||0) < p.seq) db.seq[p.key] = p.seq;
 }
 
-/* ---------- SVG drawing ------------------------------------------------- */
-const SW = 1100, SH = 715;
-const L = {                                  // sheet frame
-  ox:6, oy:6, ow:1088, oh:703,
-  ix:26, iy:26, iw:1048, ih:663
+/* ---------- tag codes ----------
+   The QR carries the shop details itself, so a phone that has never seen the record
+   can still fill it in: there is no server between the shop and the field.
+   Format: <site address>#t=1~ID~S|F~SIZE~SS|ZC~REEL~SWAGE~INSERT[~PARTNO~FITSIZE~CLASS~BORE] */
+function defaultBase(){
+  if(location.protocol !== "https:") return "";
+  return location.origin + location.pathname.replace(/index\.html$/i, "");
+}
+function tagBase(){ return String(db.settings.tagBase || defaultBase()).trim(); }
+
+function tagContent(r){
+  const enc = v => encodeURIComponent(String(v==null?"":v).replace(/~/g,"-"));
+  const flange = r.type === "Flange end";
+  const fields = ["1", r.id, flange?"F":"S", String(r.size||"").replace(/"/g,""),
+                  r.material==="Zinc chromate"?"ZC":"SS", r.reel, r.swage, flange?r.insert:"",
+                  r.fitId, r.fitSize, r.fitClass, r.fitBore];
+  // trailing empties add nothing but separators, and a smaller code scans more easily
+  while(fields.length > 8 && !fields[fields.length-1]) fields.pop();
+  return tagBase() + "#t=" + fields.map(enc).join("~");
+}
+
+/* Accepts a full tag link, a bare "#t=..." payload, or a plain ID from an older tag. */
+function parseTag(text){
+  const s = String(text||"").trim();
+  const m = s.match(/(?:^|[#&?])t=([^&#\s]*)/);
+  if(!m) return s && /^[A-Za-z0-9._-]+$/.test(s) ? { id:s, bare:true } : null;
+  const f = m[1].split("~").map(x=>{ try{ return decodeURIComponent(x); }catch(e){ return x; } });
+  if(f[0] !== "1" || !f[1]) return null;
+  const type = f[2] === "F" ? "Flange end" : "Splice";
+  return {
+    id:f[1], type,
+    size: f[3] ? f[3] + '"' : PIPE_SIZES[0],
+    material: f[4] === "ZC" ? "Zinc chromate" : "Stainless steel",
+    reel:f[5]||"", swage:f[6]||"", insert: type==="Flange end" ? (f[7]||"") : "",
+    // added later; tags printed before these existed simply leave them blank
+    fitId:f[8]||"", fitSize:f[9]||"", fitClass:f[10]||"", fitBore:f[11]||""
+  };
+}
+
+/* Real QR as SVG (quiet zone included). Null when the library did not load. */
+function qrSvg(text){
+  if(typeof qrcode !== "function") return null;
+  try{
+    const q = qrcode(0, "Q");                 // Q recovers ~25% damage: tags get scuffed
+    q.addData(text); q.make();
+    const n = q.getModuleCount(), m = 3, s = n + m*2;
+    let d = "";
+    for(let y=0;y<n;y++) for(let x=0;x<n;x++) if(q.isDark(y,x)) d += `M${x+m} ${y+m}h1v1h-1z`;
+    return `<svg viewBox="0 0 ${s} ${s}" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" role="img" aria-label="QR code"><rect width="${s}" height="${s}" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+  }catch(e){ return null; }
+}
+function qrOrNote(text){
+  return qrSvg(text) || `<div style="font:10px/1.3 monospace;color:#000;padding:4px">QR unavailable — reload with signal</div>`;
+}
+
+/* Coupling/flange rows for a <dl class="kv">; omitted entirely when none were entered. */
+function fittingRows(r){
+  if(!(r.fitId || r.fitSize || r.fitClass || r.fitBore)) return "";
+  const word = r.type === "Flange end" ? "Flange" : "Coupling";
+  return `<dt>${word} no.</dt><dd>${esc(r.fitId)||"—"}</dd>
+          <dt>${word} size</dt><dd>${esc(r.fitSize)||"—"}${r.fitClass?" · "+esc(r.fitClass):""}</dd>
+          <dt>Inside dia.</dt><dd>${r.fitBore?esc(r.fitBore)+" in":"—"}</dd>`;
+}
+
+function specLine(r){
+  return [r.type, r.size, r.material,
+          r.swage ? `swage ${r.swage}"` : "",
+          r.type==="Flange end" && r.insert ? `insert ${r.insert}"` : ""].filter(Boolean).join(" · ");
+}
+
+const ICON = {
+  pin:'<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/></svg>',
+  tag:'<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5V4a1 1 0 0 1 1-1h7.5a1 1 0 0 1 .7.3l8.5 8.5a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 12.2a1 1 0 0 1-.3-.7z"/><circle cx="7.5" cy="7.5" r="1.4"/></svg>',
+  gear:'<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 14.5a1.7 1.7 0 0 0 .35 1.9l.05.05a2 2 0 1 1-2.85 2.85l-.05-.05a1.7 1.7 0 0 0-1.9-.35 1.7 1.7 0 0 0-1 1.56V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.55 1.7 1.7 0 0 0-1.9.35l-.05.05A2 2 0 1 1 4.1 16.9l.05-.05a1.7 1.7 0 0 0 .35-1.9 1.7 1.7 0 0 0-1.56-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.55-1.1 1.7 1.7 0 0 0-.35-1.9L4.25 6.9A2 2 0 1 1 7.1 4.05l.05.05a1.7 1.7 0 0 0 1.9.35H9.1a1.7 1.7 0 0 0 1-1.56V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.56 1.7 1.7 0 0 0 1.9-.35l.05-.05A2 2 0 1 1 19.9 7.1l-.05.05a1.7 1.7 0 0 0-.35 1.9v.05a1.7 1.7 0 0 0 1.56 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1.05z"/></svg>',
+  cam:'<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5A1.5 1.5 0 0 1 4.5 7H7l1.4-2.1A1 1 0 0 1 9.2 4.5h5.6a1 1 0 0 1 .8.4L17 7h2.5A1.5 1.5 0 0 1 21 8.5v9A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z"/><circle cx="12" cy="12.8" r="3.4"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  warn:'<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 22 20H2z"/><path d="M12 9.5v5M12 17.4v.1"/></svg>',
+  check:'<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9.5 18 20 6.5"/></svg>',
+  sat:'<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.4"/><path d="M12 5.6a6.4 6.4 0 0 1 6.4 6.4M12 2.2A9.8 9.8 0 0 1 21.8 12"/><path d="M12 18.4A6.4 6.4 0 0 1 5.6 12M12 21.8A9.8 9.8 0 0 1 2.2 12"/></svg>',
+  cloud:'<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4 4 0 0 1-.4-8A5.5 5.5 0 0 1 17.2 9 3.8 3.8 0 0 1 17.5 18z"/><path d="M12 11.5v6M9.4 15l2.6 2.6 2.6-2.6"/></svg>',
+  scan:'<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 9h3v3H8zM13 13h3v3h-3zM13 9h3M8 15h3"/></svg>',
+  print:'<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9V4h10v5"/><rect x="3.5" y="9" width="17" height="8" rx="1.5"/><path d="M7 14h10v6H7z"/></svg>'
 };
-const IX2 = L.ix + L.iw, IY2 = L.iy + L.ih;
 
-function ln(x1,y1,x2,y2,cls){ return `<line x1="${r2(x1)}" y1="${r2(y1)}" x2="${r2(x2)}" y2="${r2(y2)}" class="${cls||'thin'}"/>`; }
-function rc(x,y,w,h,cls){ return `<rect x="${r2(x)}" y="${r2(y)}" width="${r2(w)}" height="${r2(h)}" class="${cls||'thin'}"/>`; }
-function ci(cx,cy,r,cls){ return `<circle cx="${r2(cx)}" cy="${r2(cy)}" r="${r2(r)}" class="${cls||'thin'}"/>`; }
-function tx(x,y,s,cls,anchor,size,extra){
-  /* size goes in an inline style: a class rule would beat a presentation attribute */
-  return `<text x="${r2(x)}" y="${r2(y)}" class="${cls||'t'}"`+
-         (anchor?` text-anchor="${anchor}"`:``)+
-         (size?` style="font-size:${r2(size)}px"`:``)+
-         (extra?` ${extra}`:``)+`>${esc(s)}</text>`;
-}
-const r2 = n => Math.round(n*100)/100;
+/* ============ app state ============ */
+let state = { tab:"log", overlay:null, draft:null, gps:null, watchId:null, here:null,
+              scanErr:null, scanId:"" };
 
-function arrow(x,y,ang){                     // filled arrowhead, ang in rad, points +x
-  const a = 7, w = 2.3;
-  const p = [[0,0],[-a,-w],[-a,w]].map(([px,py])=>{
-    const c=Math.cos(ang), s=Math.sin(ang);
-    return [r2(x+px*c-py*s), r2(y+px*s+py*c)];
-  });
-  return `<polygon points="${p.map(q=>q.join(",")).join(" ")}" class="fill"/>`;
+/* ============ geolocation ============ */
+function startWatch(){
+  if(!navigator.geolocation) return;
+  if(state.watchId != null) return;
+  try{
+    state.watchId = navigator.geolocation.watchPosition(
+      p => { state.here = {lat:p.coords.latitude, lon:p.coords.longitude, acc:p.coords.accuracy*3.28084}; renderStatuses(); },
+      () => {},
+      {enableHighAccuracy:true, maximumAge:5000, timeout:15000}
+    );
+  }catch(e){}
 }
 
-/* ---------- draggable dimensions ---------------------------------------
-   Each dimension keeps its placement in `dimPos` and is redrawn from it, so
-   dragging the text is what moves the leader rather than the reverse.
-   Diameter dims store the leader angle and its stand-off from the circle;
-   the linear dim stores an offset from the edge of the view.
------------------------------------------------------------------------- */
-const DIMPOS_DEFAULT = {
-  sp: {ang:-0.30*Math.PI, ext:34},
-  hd: {ang: 0.30*Math.PI, ext:60},
-  tv: {dy:28, dx:0}
-};
-let dimPos  = JSON.parse(JSON.stringify(DIMPOS_DEFAULT));
-let DIMGEOM = null;                          // view geometry, set by buildSheet
-
-function dimH(x1,x2,y,label,extFrom,dx,key){ // horizontal dimension
-  let s = "";
-  if(extFrom!==undefined){
-    s += ln(x1, extFrom, x1, y+6, "ext") + ln(x2, extFrom, x2, y+6, "ext");
-  }
-  s += ln(x1,y,x2,y,"dim") + arrow(x1,y,Math.PI) + arrow(x2,y,0);
-  const cx = (x1+x2)/2 + (dx||0);
-  s += tx(cx, y-5, label, "dt", "middle", null, key?`data-dim-text="${key}"`:"");
-  return s;
-}
-function dimDia(cx,cy,rad,label,ang,sub,ext,key){ // diameter dim, leader at ang
-  const c=Math.cos(ang), s=Math.sin(ang);
-  const x1=cx-rad*c, y1=cy-rad*s, x2=cx+rad*c, y2=cy+rad*s;
-  const E=ext||34, lx=x2+E*c, ly=y2+E*s;
-  const flip = c < 0;                        // leader heading left: run the
-  const tail = flip ? -40 : 40;              // shoulder and text that way too
-  const tag  = key ? `data-dim-text="${key}"` : "";
-  const anc  = flip ? "end" : "start", off = flip ? -4 : 4;
-  let o = ln(x1,y1,x2,y2,"dim") + arrow(x1,y1,ang+Math.PI) + arrow(x2,y2,ang);
-  o += ln(x2,y2,lx,ly,"dim") + ln(lx,ly,lx+tail,ly,"dim");
-  o += tx(lx+off, ly-4, label, "dt", anc, null, tag);
-  if(sub) o += tx(lx+off, ly+7, sub, "tn", anc, null, tag);
-  return o;
-}
-function dimAnchor(key){                     // the point the text hangs off
-  const G = DIMGEOM; if(!G) return {x:0,y:0};
-  if(key === "tv")
-    return {x:(G.x1+G.x2)/2 + dimPos.tv.dx, y:G.scy - G.R - dimPos.tv.dy};
-  const rad = key === "sp" ? G.R : G.Rh, q = dimPos[key];
-  return {x:G.fcx + (rad+q.ext)*Math.cos(q.ang),
-          y:G.fcy + (rad+q.ext)*Math.sin(q.ang)};
-}
-function dimSVG(key){                        // one dimension, rebuilt from dimPos
-  const G = DIMGEOM; if(!G) return "";
-  if(key === "sp")
-    return dimDia(G.fcx,G.fcy,G.R,  "Ø"+fmt(G.sp), dimPos.sp.ang, null,
-                  dimPos.sp.ext, "sp");
-  if(key === "hd")
-    return dimDia(G.fcx,G.fcy,G.Rh, "Ø"+fmt(G.hd), dimPos.hd.ang,
-                  "O/S FACE OF TRAVERSES", dimPos.hd.ext, "hd");
-  return dimH(G.x1, G.x2, G.scy - G.R - dimPos.tv.dy, fmt(G.tv),
-              G.scy - G.R, dimPos.tv.dx, "tv");
-}
-function dimMoveTo(key, mx, my){             // put the anchor at mx,my
-  const G = DIMGEOM; if(!G) return;
-  if(key === "tv"){
-    dimPos.tv.dx = mx - (G.x1+G.x2)/2;
-    dimPos.tv.dy = (G.scy - G.R) - my;
-  } else {
-    const rad = key === "sp" ? G.R : G.Rh;
-    const dx = mx - G.fcx, dy = my - G.fcy;
-    dimPos[key].ang = Math.atan2(dy, dx);
-    dimPos[key].ext = Math.max(8, Math.hypot(dx, dy) - rad);
-  }
-}
-
-/* ---------- where the traverses sit ------------------------------------
-   There is exactly one traverse per spoke, always landing on a spoke -- so
-   the count is never set independently, it follows the spoke count. Returns
-   one fraction-of-a-turn per traverse, which each view adds its own base
-   angle to.
------------------------------------------------------------------------- */
-function traverseTurns(ns){
-  const out = [];
-  for(let j=0; j<ns; j++) out.push(j/ns);
-  return out;
-}
-
-/* ---------- isometric pictorial ----------------------------------------
-   Reel axis on world X, flange circles in the YZ plane. Yaw 45 deg then
-   pitch 22 deg, orthographic, mirrored so the far flange sits up and to the
-   left -- the same attitude as the shop pictorial. Pure wireframe: every
-   member is drawn, nothing is hidden, which is how the pictorial reads.
------------------------------------------------------------------------- */
-function isoView(p, box){
-  const A = 45*Math.PI/180, B = 22*Math.PI/180;
-  const ca=Math.cos(A), sa=Math.sin(A), cb=Math.cos(B), sb=Math.sin(B);
-  const pr  = (x,y,z) => { const x1 = x*ca + z*sa, z1 = -x*sa + z*ca;
-                           return [ -x1, -(y*cb - z1*sb) ]; };
-  /* depth along the view axis; more negative = further from the eye */
-  const dep = (x,y,z) => { const z1 = -x*sa + z*ca; return y*sb + z1*cb; };
-
-  const solid = p.isoStyle !== "wire";
-  const faces = [];
-  let minX=1e9,maxX=-1e9,minY=1e9,maxY=-1e9;
-
-  /* Every member is chopped into short quads so the painter's sort works per
-     piece, not per part -- the top of the near flange really is behind the
-     bottom of the far one. `edges` lists which of the four sides get a stroke;
-     the rest are internal joins between pieces and must stay invisible. */
-  function face(pts3, cls, edges){
-    let d = 0; const pts = [];
-    for(const q of pts3){
-      d += dep(q[0],q[1],q[2]);
-      const s = pr(q[0],q[1],q[2]);
-      if(s[0]<minX)minX=s[0]; if(s[0]>maxX)maxX=s[0];
-      if(s[1]<minY)minY=s[1]; if(s[1]>maxY)maxY=s[1];
-      pts.push(s);
-    }
-    faces.push({d:d/pts3.length, pts, cls, edges});
-  }
-
-  const half = p.tv/2;
-  const Rr = p.sp/2, Rh = p.hd/2, Rs = Math.max(p.spokeid,0)/2;
-  const ringW = p.ringB, ns = Math.max(3, Math.round(p.nspoke));
-  const NC = 72, NSEG = 6;
-
-  const nr = Math.max(1, Math.round(p.nring));
-  [-half, half].forEach(a => {
-    /* rim rings, as flat annuli in the flange plane */
-    for(let i=0;i<nr;i++){
-      const dia = p.sp - (p.sp-p.hd)*i/nr;   // never lands on the traverse circle
-      const ro = dia/2, ri = Math.max(ro - ringW, 0.5);
-      const cls = i===0 ? "med" : "thin";
-      for(let k=0;k<NC;k++){
-        const t0=2*Math.PI*k/NC, t1=2*Math.PI*(k+1)/NC;
-        face([[a, ro*Math.cos(t0), ro*Math.sin(t0)],[a, ro*Math.cos(t1), ro*Math.sin(t1)],
-              [a, ri*Math.cos(t1), ri*Math.sin(t1)],[a, ri*Math.cos(t0), ri*Math.sin(t0)]],
-             cls, [0,2]);
-      }
-    }
-    /* hub boss */
-    if(Rs > 1){
-      const disc=[]; for(let k=0;k<NC;k++){ const t=2*Math.PI*k/NC;
-        disc.push([a, Rs*Math.cos(t), Rs*Math.sin(t)]); }
-      face(disc, "thin", "all");
-    }
-    /* spokes, welded to the inside of the rim rather than lapping over it */
-    const rOut = Math.max(Rr - ringW, Rs + 1), w = p.spokeB/2;
-    for(let k=0;k<ns;k++){
-      const f = 2*Math.PI*k/ns, cf=Math.cos(f), sf=Math.sin(f);
-      const P = (r,s) => [a, r*cf - s*sf, r*sf + s*cf];
-      for(let j=0;j<NSEG;j++){
-        const ra = Rs + (rOut-Rs)*j/NSEG, rb = Rs + (rOut-Rs)*(j+1)/NSEG;
-        const e=[0,2]; if(j===0) e.push(3); if(j===NSEG-1) e.push(1);
-        face([P(ra,-w),P(rb,-w),P(rb,w),P(ra,w)], "thin", e);
-      }
-    }
-  });
-
-  /* traverses: solid sections running along the spokes, ending in the two
-     flange planes. Drawn as boxes so the plank thickness reads -- outer face
-     on the hub circle, inner face batRad below it, both side faces, and a cap
-     at each end. */
-  if(p.drumType !== "shell"){
-    const w = p.batWid/2, rOut = Rh, rIn = Math.max(Rh - p.batRad, 0.5);
-    const NT = 4;
-    for(const t of traverseTurns(ns)){
-      const f = 2*Math.PI*t;                 // same base as the spokes above
-      const cf=Math.cos(f), sf=Math.sin(f);
-      const Pt = (x,r,s) => [x, r*cf - s*sf, r*sf + s*cf];
-      for(let j=0;j<NT;j++){
-        const xa = -half + p.tv*j/NT, xb = -half + p.tv*(j+1)/NT;
-        const e=[0,2]; if(j===0) e.push(3); if(j===NT-1) e.push(1);
-        for(const r of [rOut, rIn])          // outer and inner faces
-          face([Pt(xa,r,-w),Pt(xb,r,-w),Pt(xb,r,w),Pt(xa,r,w)], "thin", e);
-        for(const s of [-w, w])              // the two sides
-          face([Pt(xa,rIn,s),Pt(xb,rIn,s),Pt(xb,rOut,s),Pt(xa,rOut,s)], "thin", e);
-      }
-      for(const x of [-half, half])          // end caps
-        face([Pt(x,rIn,-w),Pt(x,rOut,-w),Pt(x,rOut,w),Pt(x,rIn,w)], "thin", "all");
-    }
-  }
-  /* No circle is drawn at the hub diameter in any view: the traverses running
-     between the flanges are what define it. A wrapper plate, if one is selected,
-     still counts in the take-off but is not drawn. No arbor shaft either -- the
-     source drawing shows only the hub boss the spokes converge on. */
-
-  /* --- fit to the box, then paint far-to-near --- */
-  const bw = maxX-minX || 1, bh = maxY-minY || 1;
-  const k = Math.min(box.w/bw, box.h/bh);
-  const ox = box.x + (box.w - bw*k)/2 - minX*k;
-  const oy = box.y + (box.h - bh*k)/2 - minY*k;
-  const XY = s => r2(s[0]*k+ox)+","+r2(s[1]*k+oy);
-
-  faces.sort((u,v) => u.d - v.d);
-  const out = [];
-  for(const f of faces){
-    const P = f.pts;
-    if(solid) out.push(`<polygon points="${P.map(XY).join(" ")}" class="face"/>`);
-    if(f.edges === "all"){
-      out.push(`<polyline points="${P.concat([P[0]]).map(XY).join(" ")}" class="${f.cls}"/>`);
-    } else {
-      const d = f.edges.map(i => "M"+XY(P[i])+"L"+XY(P[(i+1)%P.length])).join("");
-      out.push(`<path d="${d}" class="${f.cls}"/>`);
-    }
-  }
-  return out.join("");
-}
-
-function buildSheet(p){
-  const S = [];
-  S.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SW} ${SH}" id="dwg">`);
-  S.push(`<style>
-    #dwg text{font-family:"Arial Narrow",Arial,Helvetica,sans-serif;fill:${'#14181f'};}
-    #dwg .thin{fill:none;stroke:#14181f;stroke-width:.8}
-    #dwg .thick{fill:none;stroke:#14181f;stroke-width:1.7}
-    #dwg .med{fill:none;stroke:#14181f;stroke-width:1.2}
-    #dwg .dim{fill:none;stroke:#14181f;stroke-width:.6}
-    #dwg .ext{fill:none;stroke:#14181f;stroke-width:.5}
-    #dwg .fill{fill:#14181f;stroke:none}
-    #dwg .face{fill:#ffffff;stroke:none}
-    #dwg [data-dim-text]{cursor:move;pointer-events:bounding-box}
-    #dwg g[data-dim]:hover .dim,#dwg g[data-dim]:hover .ext{stroke:#1f4e9c}
-    #dwg g[data-dim]:hover .fill{fill:#1f4e9c}
-    #dwg g[data-dim]:hover text{fill:#1f4e9c}
-    #dwg .t{font-size:9.5px}
-    #dwg .tn{font-size:8.6px}
-    #dwg .dt{font-size:11px;font-weight:600}
-    #dwg .lbl{font-size:7px;fill:#3a4250}
-    #dwg .val{font-size:11px;font-weight:600}
-    #dwg .big{font-size:14px;font-weight:700}
-    #dwg .zone{font-size:10px;font-weight:700}
-  </style>`);
-  S.push(`<rect x="0" y="0" width="${SW}" height="${SH}" fill="#ffffff"/>`);
-
-  /* ---- frame + zone markers ---- */
-  S.push(rc(L.ox,L.oy,L.ow,L.oh,"med"));
-  S.push(rc(L.ix,L.iy,L.iw,L.ih,"thick"));
-  for(let i=0;i<8;i++){
-    const w = L.iw/8, x0 = L.ix + w*i;
-    const lab = String(8-i);
-    S.push(tx(x0+w/2, L.iy-9, lab, "zone", "middle"));
-    S.push(tx(x0+w/2, IY2+15, lab, "zone", "middle"));
-    if(i>0){ S.push(ln(x0,L.oy,x0,L.iy,"thin")); S.push(ln(x0,IY2,x0,L.oy+L.oh,"thin")); }
-  }
-  for(let j=0;j<4;j++){
-    const h = L.ih/4, y0 = L.iy + h*j;
-    const lab = "DCBA"[j];
-    S.push(tx(L.ix-11, y0+h/2+4, lab, "zone", "middle"));
-    S.push(tx(IX2+11, y0+h/2+4, lab, "zone", "middle"));
-    if(j>0){ S.push(ln(L.ox,y0,L.ix,y0,"thin")); S.push(ln(IX2,y0,L.ox+L.ow,y0,"thin")); }
-  }
-
-  /* ---- views ---- */
-  const iso = p.layout !== "ortho";                  // isometric shown?
-  const orth = p.layout !== "isoonly";               // ortho views shown?
-  const scale = orth
-      ? (iso ? Math.min(270/p.sp, 200/p.tv) : Math.min(330/p.sp, 280/p.tv))
-      : 1;
-  const R  = p.sp*scale/2, Rh = p.hd*scale/2, Ra = p.arbod*scale/2;
-  const Rs = p.spokeid*scale/2;
-  const fcx = iso ? 271 : 300, fcy = 245;
-  const scx = iso ? 555 : 800, scy = 245;
-  const halfT = p.tv*scale/2;
-  const flt = Math.max(p.ringB*scale, 3.2);          // rim tube seen edge-on
-  const ns  = Math.max(3, Math.round(p.nspoke));
-    const ang = i => (2*Math.PI/ns)*i - Math.PI/2;     // spoke angles, 12 o'clock first
-  const tTurns = traverseTurns(ns);                  // one per spoke, always
-
-  if(orth){
-  /* --- front view: rim ring, full-radius spokes, traverse ends, hub boss --- */
-  S.push(ci(fcx,fcy,R,"med"));
-  if(R - p.ringB*scale > 2) S.push(ci(fcx,fcy,R - p.ringB*scale,"med"));
-  const nr = Math.max(1, Math.round(p.nring));
-  for(let i=1;i<nr;i++){
-    const dia = p.sp - (p.sp-p.hd)*i/nr;   // never lands on the traverse circle
-    S.push(ci(fcx,fcy,dia*scale/2,"thin"));
-    if(dia*scale/2 - p.ringB*scale > 2) S.push(ci(fcx,fcy,dia*scale/2 - p.ringB*scale,"thin"));
-  }
-  const halfW = Math.max(p.spokeB*scale/2, 1.1);
-  /* Hub OD is the outside face of the traverses, so they run inward from it */
-  const halfB = Math.max(p.batWid*scale/2, 1.1);
-  const RhIn  = Math.max((p.hd/2 - p.batRad)*scale, 1);
-  for(let i=0;i<ns;i++){
-    const a = ang(i)*180/Math.PI;
-    S.push(`<g transform="rotate(${r2(a)} ${r2(fcx)} ${r2(fcy)})">`+
-           rc(fcx+Rs, fcy-halfW, Math.max(R-Rs,1), halfW*2, "thin")+`</g>`);
-  }
-  for(const t of tTurns){                            // traverse ends, on their spokes
-    const a = t*360 - 90;
-    S.push(`<g transform="rotate(${r2(a)} ${r2(fcx)} ${r2(fcy)})">`+
-           rc(fcx+RhIn, fcy-halfB, Rh-RhIn, halfB*2, "thin")+`</g>`);
-  }
-  S.push(rc(fcx-Rs, fcy-Rs, 2*Rs, 2*Rs, "thin"));    // hub boss
-  if(Ra > 1.2) S.push(ci(fcx,fcy,Ra,"thin"));
-  DIMGEOM = {fcx, fcy, R, Rh, sp:p.sp, hd:p.hd, tv:p.tv,
-             x1:scx-halfT, x2:scx+halfT, scy};
-  S.push(`<g data-dim="sp">${dimSVG("sp")}</g>`);
-  S.push(`<g data-dim="hd">${dimSVG("hd")}</g>`);
-  S.push(tx(fcx, fcy+R+30, "FRONT VIEW", "t", "middle"));
-
-  /* --- side view: two rims edge-on with the traverses spanning between --- */
-  const x1 = scx-halfT, x2 = scx+halfT;
-  S.push(rc(x1-flt, scy-R, flt, 2*R, "med"));        // left rim
-  S.push(rc(x2,     scy-R, flt, 2*R, "med"));        // right rim
-  for(const t of tTurns){                            // traverses at their true heights
-    /* project all four corners of the section: a plank at 3 o'clock shows its
-       thickness, one at 12 o'clock shows its full width */
-    const th = 2*Math.PI*t - Math.PI/2, sn = Math.sin(th), cs = Math.cos(th);
-    let lo = 1e9, hi = -1e9;
-    for(const r of [RhIn, Rh]) for(const s of [-halfB, halfB]){
-      const v = r*sn + s*cs; if(v<lo) lo=v; if(v>hi) hi=v;
-    }
-    S.push(rc(x1, scy-hi, x2-x1, Math.max(hi-lo, 1), "thin"));
-  }
-  S.push(`<g data-dim="tv">${dimSVG("tv")}</g>`);
-  S.push(tx(scx, scy+R+30, "SIDE VIEW", "t", "middle"));
-  }/* end ortho */
-
-  /* ---- isometric pictorial ---- */
-  if(iso){
-    const box = orth ? {x:686, y:100, w:376, h:300} : {x:120, y:96, w:860, h:360};
-    S.push(isoView(p, box));
-    S.push(tx(box.x + box.w/2, box.y + box.h + 16, "ISOMETRIC VIEW", "t", "middle"));
-  }
-
-  /* ---- revisions table ---- */
-  const rvx=674, rvy=L.iy, rvw=IX2-674, rvh=64;
-  const cw=[38,rvw-38-58-42-62,58,42,62];
-  let cx0=rvx; const colx=[];
-  for(const w of cw){ colx.push(cx0); cx0+=w; }
-  S.push(tx(rvx+rvw/2, rvy-4, "", "t", "middle"));
-  S.push(rc(rvx,rvy,rvw,rvh,"med"));
-  S.push(ln(rvx,rvy+16,rvx+rvw,rvy+16,"thin"));
-  S.push(ln(rvx,rvy+38,rvx+rvw,rvy+38,"thin"));
-  for(let i=1;i<colx.length;i++) S.push(ln(colx[i],rvy+16,colx[i],rvy+rvh,"thin"));
-  S.push(tx(rvx+rvw/2, rvy+12, "REVISIONS", "t", "middle"));
-  const hdr=["REV","DESCRIPTION","DATE","BY","APPROVED"];
-  hdr.forEach((h,i)=>S.push(tx(colx[i]+cw[i]/2, rvy+32, h, "lbl", "middle", 8)));
-  const rvrow=[p.rev, p.revdesc, p.dwgdate, p.dwgby, p.chkby];
-  rvrow.forEach((v,i)=>S.push(tx(colx[i]+ (i===1?5:cw[i]/2), rvy+53, v||"",
-                                 "t", i===1?"start":"middle")));
-
-  /* ---- notes ---- */
-  const nx=36, nw=560;
-  const notes = noteList(p);
-  const lines = [];
-  notes.forEach((n,i)=>{
-    const head = (i+1)+". ";
-    const ws = wrapText(head+n, 128);
-    ws.forEach((l,k)=> lines.push({t:l, ind:k?14:0}));
-  });
-  const nh = 16 + lines.length*10 + 6;
-  const ny = IY2 - nh - 6;
-  S.push(tx(nx+4, ny+11, "NOTES (UNLESS OTHERWISE SPECIFIED):", "t"));
-  lines.forEach((l,i)=> S.push(tx(nx+6+l.ind, ny+23+i*10, l.t, "tn")));
-
-  /* ---- proprietary block ---- */
-  const px=600, pw=IX2-600, py=IY2-144-58, ph=52;
-  S.push(rc(px,py,pw,ph,"thin"));
-  const prop = ["This product has been designed by Specialty RTP, LLC exclusively and shall not",
-                "be reproduced unless authorized in writing by Specialty RTP, LLC."];
-  prop.forEach((t,i)=>S.push(tx(px+6, py+18+i*13, t, "tn")));
-
-  /* ---- title block ---- */
-  const tbx=600, tby=IY2-144, tbw=IX2-600, tbh=144;
-  S.push(rc(tbx,tby,tbw,tbh,"thick"));
-  const cA=150, cB=110;
-  const ax=tbx, bx=tbx+cA, ccx=tbx+cA+cB, cw3=tbw-cA-cB;
-  S.push(ln(bx,tby,bx,tby+tbh,"thin"));
-  S.push(ln(ccx,tby,ccx,tby+tbh,"thin"));
-
-  /* 0.48 em per character is the measured average for Arial Narrow at these sizes */
-  const fitSize = (text, w, max) =>
-    Math.max(5.5, Math.min(max, (w-8) / (Math.max(String(text||"").length,1) * 0.48)));
-  function cell(x,y,w,h,label,value,vcls,vsize){
-    let s = rc(x,y,w,h,"thin");
-    if(label) s += tx(x+3, y+8.5, label, "lbl");
-    if(value) s += tx(x+w/2, y+h-6, value, vcls||"val", "middle",
-                      vsize || fitSize(value, w, 11));
-    return s;
-  }
-  /* col A: sign-off rows + tolerance block */
-  const rh=26;
-  S.push(cell(ax,        tby,      cA/2, rh, "DWG. BY", p.dwgby));
-  S.push(cell(ax+cA/2,   tby,      cA/2, rh, "DATE:",   p.dwgdate));
-  S.push(cell(ax,        tby+rh,   cA/2, rh, "CHK. BY", p.chkby));
-  S.push(cell(ax+cA/2,   tby+rh,   cA/2, rh, "DATE:",   p.chkdate));
-  S.push(cell(ax,        tby+2*rh, cA/2, rh, "APV. BY", p.apvby));
-  S.push(cell(ax+cA/2,   tby+2*rh, cA/2, rh, "DATE:",   p.apvdate));
-  const toy = tby+3*rh, toh = tbh-3*rh;
-  S.push(rc(ax,toy,cA,toh,"thin"));
-  S.push(tx(ax+cA/2, toy+9,  "TOLERANCES UNLESS", "lbl", "middle", 7.4));
-  S.push(tx(ax+cA/2, toy+17, "OTHERWISE SPECIFIED", "lbl", "middle", 7.4));
-  const tol=[[".0","±.030","FRACTIONAL"],[".00","±.010",'DIM <6" ± 1/64"'],
-             [".000","±.005",'DIM >6" ± 1/32"'],[".0000","±.0005","ANGULAR ±1°"]];
-  tol.forEach((t,i)=>{
-    const y=toy+27+i*9.5;
-    S.push(tx(ax+5,  y, t[0], "tn", "start", 7.2));
-    S.push(tx(ax+34, y, t[1], "tn", "start", 7.2));
-    S.push(tx(ax+68, y, t[2], "tn", "start", 7.2));
-  });
-  /* col B: material stack */
-  const bl=["MATERIAL TYPE:","HEAT TREAT:","FINISH:","COATING:","CONVENTION:"];
-  const bv=[p.matl,"","",p.coat,""];
-  bl.forEach((t,i)=>S.push(cell(bx, tby+tbh/5*i, cB, tbh/5, t, bv[i])));
-  /* col C: title / part no / bottom strip */
-  S.push(cell(ccx, tby, cw3, 52, "TITLE:", "", ""));
-  S.push(tx(ccx+cw3/2, tby+36, p.title, "big", "middle", fitSize(p.title, cw3, 14)));
-  S.push(cell(ccx, tby+52, cw3*0.66, 40, "ITEM PART NO:", ""));
-  S.push(tx(ccx+cw3*0.33, tby+82, p.partno, "val", "middle",
-            fitSize(p.partno, cw3*0.66, 12)));
-  S.push(cell(ccx+cw3*0.66, tby+52, cw3*0.34, 40, "SIZE:", "D"));
-  const by=tby+92, bh=tbh-92;
-  const w1=cw3*0.22, w2=cw3*0.18, w3=cw3*0.34, w4=cw3*0.12, w5=cw3*0.14;
-  let bxx=ccx;
-  S.push(cell(bxx, by, w1, bh, "SCALE:", "N.T.S.")); bxx+=w1;
-  S.push(cell(bxx, by, w2, bh, "UNITS:", "INCH"));   bxx+=w2;
-  S.push(cell(bxx, by, w3, bh, "DWG. NO.", p.dwgnoOut, "val")); bxx+=w3;
-  S.push(cell(bxx, by, w4, bh, "REV:", p.rev));      bxx+=w4;
-  S.push(cell(bxx, by, w5, bh, "SHEET:", p.sheet));
-
-  S.push(`</svg>`);
-  return S.join("");
-}
-
-/* ---------- DXF export -------------------------------------------------- */
-function buildDXF(p){
-  const e = [];
-  const push = (...a)=>e.push(...a);
-  const line=(x1,y1,x2,y2,lay)=>push("0","LINE","8",lay,"10",x1,"20",y1,"30","0",
-                                     "11",x2,"21",y2,"31","0");
-  const circ=(cx,cy,r,lay)=>push("0","CIRCLE","8",lay,"10",cx,"20",cy,"30","0","40",r);
-
-  const box=(xa,ya,xb,yb,lay)=>{ line(xa,ya,xb,ya,lay); line(xb,ya,xb,yb,lay);
-                                 line(xb,yb,xa,yb,lay); line(xa,yb,xa,ya,lay); };
-  /* front view at origin */
-  const nr=Math.max(1,Math.round(p.nring));
-  for(let i=0;i<nr;i++){
-    const dia = p.sp - (p.sp-p.hd)*i/nr;   // never lands on the traverse circle
-    circ(0,0,dia/2,"RIM"); if(dia/2-p.ringB>0) circ(0,0,dia/2-p.ringB,"RIM");
-  }
-  if(p.arbod>0) circ(0,0,p.arbod/2,"ARBOR");
-  const ns=Math.max(3,Math.round(p.nspoke)),
-        hw=p.spokeB/2, bw=p.batWid/2,
-        r1=Math.max(p.spokeid,0)/2, r2_=p.sp/2,
-        rb=p.hd/2, rbIn=Math.max(p.hd/2 - p.batRad, 0.5);
-  const rot=(ang)=>{ const c=Math.cos(ang), s=Math.sin(ang);
-                     return (x,y)=>[x*c-y*s, x*s+y*c]; };
-  for(let i=0;i<ns;i++){
-    const pt=rot((2*Math.PI/ns)*i - Math.PI/2);
-    const q=[pt(r1,-hw),pt(r2_,-hw),pt(r2_,hw),pt(r1,hw)];
-    for(let k=0;k<4;k++) line(q[k][0],q[k][1],q[(k+1)%4][0],q[(k+1)%4][1],"SPOKES");
-  }
-  const tTurns = traverseTurns(ns);
-  for(const tu of tTurns){                      // traverse seen end-on, on its spoke
-    const pt=rot(2*Math.PI*tu - Math.PI/2);
-    const t=[pt(rbIn,-bw),pt(rb,-bw),pt(rb,bw),pt(rbIn,bw)];
-    for(let k=0;k<4;k++) line(t[k][0],t[k][1],t[(k+1)%4][0],t[(k+1)%4][1],"TRAVERSE");
-  }
-  if(p.spokeid>0) box(-r1,-r1,r1,r1,"HUB");
-  /* side view offset to the right */
-  const ox = p.sp/2 + 40 + p.tv/2 + p.ringB;
-  const ht=p.tv/2, ft=p.ringB;
-  box(ox-ht-ft, -p.sp/2, ox-ht, p.sp/2, "RIM");
-  box(ox+ht,    -p.sp/2, ox+ht+ft, p.sp/2, "RIM");
-  for(const tu of tTurns){
-    const th = 2*Math.PI*tu - Math.PI/2, sn=Math.sin(th), cs=Math.cos(th);
-    let lo=1e9, hi=-1e9;
-    for(const r of [rbIn, rb]) for(const s of [-bw, bw]){
-      const v = r*sn + s*cs; if(v<lo)lo=v; if(v>hi)hi=v;
-    }
-    box(ox-ht, lo, ox+ht, hi, "TRAVERSE");
-  }
-  if(p.arbod>0 && p.arbout>0)
-    box(ox-ht-ft-p.arbout, -p.arbod/2, ox+ht+ft+p.arbout, p.arbod/2, "ARBOR");
-
-  return ["0","SECTION","2","ENTITIES", ...e, "0","ENDSEC","0","EOF"]
-         .map(v => typeof v === "number" ? (Math.round(v*1e6)/1e6).toString() : v)
-         .join("\r\n") + "\r\n";
-}
-
-/* ---------- state / read + write UI ------------------------------------- */
-function readUI(){
-  const p = {};
-  NUMKEYS.forEach(k => p[k] = parseFloat($(k).value) || 0);
-  TXTKEYS.forEach(k => p[k] = $(k).value);
-  SELKEYS.forEach(k => p[k] = $(k).value);
-  const [sb,st] = $("spokeTube").value.split("x").map(Number);
-  const [rb,rt] = $("ringTube").value.split("x").map(Number);
-  const [bb,bt] = $("batTube").value.split("x").map(Number);
-  p.spokeB=sb; p.spokeT=st; p.ringB=rb; p.ringT=rt; p.batB=bb; p.batT=bt;
-
-  /* one traverse per spoke, always landing on one -- never set independently */
-  p.nbat = Math.max(3, Math.round(p.nspoke));
-
-  /* One description of the traverse section that every view and the take-off
-     reads. batRad is the radial thickness, batWid the width around the drum.
-     Hub OD is the OUTSIDE face of the traverses, so they run inward from it. */
-  if(p.batMat === "wood"){
-    const [tw, ww] = $("batLumber").value.split("x").map(Number);
-    const nom = (LUMBER.find(l => l[1]===tw && l[2]===ww) || ["",tw,ww])[0];
-    p.batRad = tw; p.batWid = ww;
-    p.batLbFt = tw * ww * 12 * (p.woodDens/1728);
-    p.batDesc = nom + " timber (" + frac(tw) + " x " + frac(ww) + " dressed)";
-    p.batNote = nom + " NOMINAL TIMBER PLANK (" + frac(tw) + " X " + frac(ww) + " DRESSED)";
-  } else {
-    p.batRad = bb; p.batWid = bb;
-    p.batLbFt = tubeLbFt(bb, bt);
-    p.batDesc = tubeName(bb,bt) + " square tubing";
-    p.batNote = tubeName(bb,bt) + " SQUARE TUBING";
-  }
-  p.partno = "SP"+fmt(p.sp)+"-HD"+fmt(p.hd)+"-T"+fmt(p.tv);
-  p.title  = fmt(p.sp)+'" X '+fmt(p.hd)+'" X '+fmt(p.tv)+'" PIPE REEL';
-  p.dwgnoOut = p.dwgno.trim() || p.partno;
-  return p;
-}
-function setUI(v){
-  NUMKEYS.forEach(k => { if(k in v) $(k).value = v[k]; });
-  TXTKEYS.forEach(k => { if(k in v) $(k).value = v[k]; });
-  SELKEYS.forEach(k => { if(k in v) $(k).value = v[k]; });
-  syncSliders();
-}
-function syncSliders(){
-  [["sp","spR"],["hd","hdR"],["tv","tvR"]].forEach(([n,s])=>{ $(s).value = $(n).value; });
-}
-
-/* ---------- render ------------------------------------------------------ */
-function render(){
-  const p = readUI();
-
-  /* weight first -- note 17 needs it */
-  const to = takeoff(p);
-  p.weight = to.total;
-
-  /* capacity */
-  const wm = wrapModel(p.sp, p.hd, p.tv, p.pod);
-  const bend = p.pod>0 ? p.hd/p.pod : 0;
-  const bendOK = bend >= p.bmin;
-  const wFull = wm.cap * p.plf;
-  const wtOK  = p.wmax<=0 || wFull <= p.wmax;
-  const feasible = bendOK && wtOK && wm.cap>0;
-  const reels = feasible ? Math.ceil(p.plen/wm.cap) : 0;
-  const last  = reels ? p.plen - (reels-1)*wm.cap : 0;
-
-  /* header + part no */
-  $("partno").textContent = p.partno;
-  const hit = CAT.find(c=>c[1]===p.sp && c[2]===p.hd && c[3]===p.tv);
-  const isRef = p.sp===REF[1] && p.hd===REF[2] && p.tv===REF[3];
-  $("tagSrc").textContent = hit ? "in Reel Plan" : (isRef ? "source drawing" : "custom");
-  $("presetNote").textContent = hit
-    ? "This size is row " + (CAT.indexOf(hit)+11) + " of Reel Plan!A11:D28 — the optimizer can pick it automatically."
-    : (isRef ? "The size on OVERALL ASSEMBLY DRAFT DWG. Not in the Reel Plan catalogue — add it there if you want the optimizer to select it."
-             : "Not in the Reel Plan catalogue. Add a row at Reel Plan!A11:D28 to make it selectable by the optimizer.");
-
-  /* dimension derived */
-  $("dDepth").textContent = fmt((p.sp-p.hd)/2) + '"';
-  $("dWidth").textContent = fmt(p.tv + 2*p.ringB) + '"' +
-    (p.arbout > 0 ? '  (+ arbor ' + fmt(2*p.arbout) + '")' : "");
-  $("dArea").textContent  = com(Math.PI*p.hd*p.tv/144, 1) + " ft²";
-  const nbn = Math.max(1, Math.round(p.nbat)), pitch = Math.PI*p.hd/nbn;
-  $("dNbat").textContent  = nbn;
-  $("dPitch").textContent = com(pitch,1) + '"';
-  $("dGap").textContent   = com(pitch - p.batWid, 1) + '"';
-  $("dCover").textContent = com(100*nbn*p.batWid/(Math.PI*p.hd), 1) + "%";
-
-  /* checks */
-  const C = [];
-  const chk=(ok,label,val)=>C.push(`<div class="chk ${ok?'pass':'fail'}"><span>${label}</span><b>${val}</b></div>`);
-  chk(bendOK, "Bend ratio ≥ " + fmt(p.bmin), fmt(Math.round(bend*100)/100));
-  chk(wm.wraps>0, "Wraps fit in wind depth", wm.wraps);
-  chk(wtOK, "Pipe weight at capacity " +
-      (p.wmax>0 ? "≤ " + com(p.wmax) + " lb" : "(no limit)"),
-      com(Math.round(wFull)) + " lb");
-  chk(p.sp>p.hd, "Spool OD > hub OD", fmt((p.sp-p.hd)/2) + '" depth');
-  const gap = Math.PI*p.hd/Math.max(1,Math.round(p.nbat)) - p.batWid;
-  chk(gap <= p.pod, "Traverse gap ≤ pipe OD <small>rule of thumb, not a spec</small>",
-      com(gap,1) + '" vs ' + fmt(p.pod) + '"');
-  $("checks").innerHTML = C.join("");
-
-  $("dWraps").textContent  = wm.wraps;
-  $("dCap").textContent    = com(wm.cap,1) + " ft";
-  $("dBraid").textContent  = wm.cap>0 ? com(wm.cap*1.01,1) + " ft" : "—";
-  $("dBase").textContent   = wm.cap>0 ? com(wm.cap*1.01+10,1) + " ft" : "—";
-  $("dReels").textContent  = feasible ? com(reels) : "not feasible";
-  $("dLast").textContent   = feasible ? com(last,1) + " ft" : "—";
-
-  /* ---- load actually on this reel (a part-wound reel is the normal case
-          for the last reel of a run) ---- */
-  $("rowFill").style.display = p.fillMode === "full" ? "none" : "";
-  const asked  = p.fillMode === "full" ? wm.cap : Math.max(p.fillLen, 0);
-  const onReel = Math.min(asked, wm.cap);
-  $("fillWarn").innerHTML = (asked > wm.cap + 1e-6)
-    ? `<div class="chk fail"><span>Over capacity — clamped to the reel's ` +
-      `${com(wm.cap,1)} ft</span><b>${com(asked,1)} ft</b></div>` : "";
-
-  /* walk the layers the same way the wrap model builds them */
-  let done = 0;
-  for(let i=0;i<wm.wraps;i++){ if(wm.cums[i] <= onReel + 1e-9) done = i+1; else break; }
-  const prevCum  = done>0 ? wm.cums[done-1] : 0;
-  const inProg   = (onReel - prevCum) > 1e-9 && done < wm.wraps;
-  const layerCap = done < wm.wraps ? wm.cums[done] - prevCum : 0;
-  const partPct  = (inProg && layerCap>0) ? (onReel-prevCum)/layerCap : 0;
-  const odNow    = inProg ? wm.ods[done] : (done>0 ? wm.ods[done-1] : p.hd);
-  const wPipe    = onReel * p.plf;
-
-  $("tagFill").textContent = p.fillMode === "full" ? "full reel" : "part wound";
-  $("dOnReel").textContent = com(onReel,1) + " ft";
-  $("dPct").textContent    = wm.cap>0 ? com(100*onReel/wm.cap,1) + "% of capacity" : "—";
-  $("dLayers").textContent = wm.wraps>0
-    ? (done + (inProg ? " + " + com(100*partPct,0) + "% of layer " + (done+1) : "")
-        + " of " + wm.wraps)
-    : "—";
-  $("dOdNow").textContent  = onReel>0 ? fmt(odNow) + '"' : fmt(p.hd) + '" (bare)';
-  $("dFree").textContent   = onReel>0 ? fmt((p.sp-odNow)/2) + '" radial'
-                                      : fmt((p.sp-p.hd)/2) + '" radial';
-  $("dWfull").textContent  = com(Math.round(wPipe)) + " lb";
-  $("dTare").textContent   = com(Math.round(to.total)) + " lb";
-  $("dWgross").textContent = com(Math.round(wPipe + to.total)) + " lb";
-
-  /* only show the size control that applies to the chosen traverse material */
-  const isWood = p.batMat === "wood";
-  $("rowLumber").style.display   = isWood ? "" : "none";
-  $("rowWoodDens").style.display = isWood ? "" : "none";
-  $("rowBatTube").style.display  = isWood ? "none" : "";
-
-  /* BOM */
-  const rows = to.items.map(it =>
-    `<tr><td>${esc(it.desc)}</td><td>${it.qty}</td><td>${com(it.each,1)}</td>` +
-    `<td>${com(Math.round(it.total))}</td></tr>`);
-  rows.unshift(`<tr><th>Item</th><th>Qty</th><th>lb ea</th><th>lb</th></tr>`);
-  if(to.wood > 0){
-    rows.push(`<tr><td>&nbsp;&nbsp;of which steel</td><td></td><td></td>` +
-              `<td>${com(Math.round(to.steel))}</td></tr>`);
-    rows.push(`<tr><td>&nbsp;&nbsp;of which timber</td><td></td><td></td>` +
-              `<td>${com(Math.round(to.wood))}</td></tr>`);
-  }
-  rows.push(`<tr><td>Subtotal</td><td></td><td></td><td><b>${com(Math.round(to.sub))}</b></td></tr>`);
-  rows.push(`<tr><td>Weld / lift / misc allowance ${fmt(p.allow)}%</td><td></td><td></td>` +
-            `<td>${com(Math.round(to.allow))}</td></tr>`);
-  rows.push(`<tr><td><b>Estimated weight</b></td><td></td><td></td>` +
-            `<td><b>${com(Math.round(to.total))}</b></td></tr>`);
-  if(p.target > 0){
-    const d = to.total - p.target;
-    rows.push(`<tr><td>Target (note 17 on source dwg)</td><td></td><td></td>` +
-              `<td>${com(p.target)}</td></tr>`);
-    rows.push(`<tr><td>Difference</td><td></td><td></td>` +
-              `<td style="color:${Math.abs(d)/p.target>0.05?'var(--warn)':'var(--ok)'}">` +
-              `${d>0?"+":""}${com(Math.round(d))}</td></tr>`);
-  }
-  $("bom").innerHTML = "<tbody>" + rows.join("") + "</tbody>";
-  $("tagW").textContent = com(Math.round(to.total)) + " lb";
-
-  /* catalogue */
-  const cr = [];
-  const all = CAT.concat([REF]);
-  all.forEach(c=>{
-    const m = wrapModel(c[1],c[2],c[3],p.pod);
-    const b = p.pod>0 ? c[2]/p.pod : 0;
-    const wf = m.cap*p.plf;
-    const ok = b>=p.bmin && m.cap>0 && (p.wmax<=0 || wf<=p.wmax);
-    const n  = ok ? Math.ceil(p.plen/m.cap) : 0;
-    const tare = takeoff(Object.assign({},p,{sp:c[1],hd:c[2],tv:c[3]})).total;
-    const cur = (c[1]===p.sp && c[2]===p.hd && c[3]===p.tv);
-    cr.push(`<tr class="${cur?'cur':''} ${ok?'':'bad'}" data-d="${c[1]},${c[2]},${c[3]}">`+
-      `<td>${esc(c[0])}${c===REF?" ★":""}</td><td>${fmt(c[1])}</td><td>${fmt(c[2])}</td>`+
-      `<td>${fmt(c[3])}</td><td>${com(b,1)}</td><td>${m.wraps}</td>`+
-      `<td>${com(m.cap,0)}</td><td>${ok?com(n):"—"}</td>`+
-      `<td>${com(Math.round(wf+tare))}</td></tr>`);
-  });
-  $("cat").querySelector("tbody").innerHTML = cr.join("");
-  $("cat").querySelectorAll("tbody tr").forEach(tr=>{
-    tr.onclick = ()=>{
-      const [a,b,c] = tr.dataset.d.split(",").map(Number);
-      $("sp").value=a; $("hd").value=b; $("tv").value=c; syncSliders(); render();
+/* Average several fixes, weighting by 1/accuracy^2, dropping outliers. */
+function captureFix(onTick){
+  return new Promise((resolve,reject)=>{
+    if(!navigator.geolocation) return reject(new Error("This device has no location service."));
+    const reads = [];
+    let done = false, id = null, timer = null;
+    const stop = () => {
+      try{ if(id != null) navigator.geolocation.clearWatch(id); }catch(e){}
+      if(timer != null) clearTimeout(timer);
     };
+    const finish = () => {
+      if(done) return; done = true;
+      stop();
+      if(!reads.length) return reject(new Error("No position fix yet. Move to open sky and try again."));
+      const best = Math.min(...reads.map(r=>r.acc));
+      const keep = reads.filter(r => r.acc <= best*3);
+      let wsum=0, lat=0, lon=0;
+      keep.forEach(r=>{ const w = 1/(r.acc*r.acc); wsum+=w; lat+=r.lat*w; lon+=r.lon*w; });
+      resolve({
+        lat: lat/wsum, lon: lon/wsum,
+        acc: Math.round(best*10)/10,
+        n: keep.length,
+        at: new Date().toISOString(),
+        source:"device"
+      });
+    };
+    const fail = err => {
+      if(done) return; done = true;
+      stop();
+      const code = err && err.code;
+      reject(new Error(
+        code === 1 ? "Location permission was denied. Allow it for this page, or enter coordinates by hand below."
+        : code === 3 ? "Timed out waiting for satellites. Try again with a clear view of the sky."
+        : "Location is unavailable here. Enter coordinates by hand below."
+      ));
+    };
+    try{
+      id = navigator.geolocation.watchPosition(
+        p => {
+          reads.push({lat:p.coords.latitude, lon:p.coords.longitude, acc:Math.max(p.coords.accuracy*3.28084, 1)});
+          onTick && onTick(reads.length, Math.min(...reads.map(r=>r.acc)));
+          if(reads.length >= AVG_TARGET) finish();
+        },
+        fail,
+        {enableHighAccuracy:true, maximumAge:0, timeout:AVG_TIMEOUT}
+      );
+    }catch(e){ return fail(e); }
+    if(!done) timer = setTimeout(finish, AVG_TIMEOUT);
   });
-
-  /* sheet */
-  $("sheetView").innerHTML = buildSheet(p);
-  $("footnote").innerHTML =
-    "Sheet regenerates live, laid out to follow OVERALL ASSEMBLY DRAFT DWG: spoked flanges "+
-    "with a single rim ring, full-radius spokes to a hub boss, and "+ Math.round(p.nbat) +
-    " traverses on the "+ fmt(p.hd) +"&Prime; circle &mdash; shown end-on in the front view "+
-    "and spanning between the rims in the side view. <b>Drag any dimension text</b> to "+
-    "reposition it &mdash; the leader and arrows follow, and the placement is saved. "+
-    "Weight is a take-off of the frame as drawn; note 17 on the source drawing says "+
-    "6,376 lb, so the balance is plate, lugs and hub assembly the three views do not show.";
-
-  /* persist */
-  try{
-    const v={}; NUMKEYS.forEach(k=>v[k]=$(k).value);
-    TXTKEYS.forEach(k=>v[k]=$(k).value); SELKEYS.forEach(k=>v[k]=$(k).value);
-    v._dim = dimPos;
-    localStorage.setItem("srtp-reel-designer-v5", JSON.stringify(v));
-  }catch(e){}
-
-  window.__state = {p, to, wm, lastReelFt: feasible ? last : 0,
-                    onReel, odNow, layersDone: done, partPct};
 }
 
-/* ---------- wiring ------------------------------------------------------ */
-function buildSelects(){
-  const opt = TUBES.map(([b,t])=>
-    `<option value="${b}x${t}">${esc(tubeName(b,t))}</option>`).join("");
-  $("spokeTube").innerHTML = opt;
-  $("ringTube").innerHTML  = opt;
-  $("batTube").innerHTML   = opt;
-  $("batLumber").innerHTML = LUMBER.map(([n,t,w])=>
-    `<option value="${t}x${w}">${esc(n)}  (${esc(frac(t))} x ${esc(frac(w))})</option>`).join("");
-
-  const groups =
-    `<optgroup label="Source drawing">
-       <option value="${REF[1]},${REF[2]},${REF[3]}">${REF[0]} — 192" x 160" x 92" pipe reel</option>
-     </optgroup>
-     <optgroup label="Reel Plan catalogue">` +
-    CAT.map(c=>`<option value="${c[1]},${c[2]},${c[3]}">${c[0]}</option>`).join("") +
-    `</optgroup><optgroup label="—"><option value="custom">Custom…</option></optgroup>`;
-  $("preset").innerHTML = groups;
+/* ============ photos ============ */
+function shrink(file, max=640, q=0.6){
+  return new Promise((res,rej)=>{
+    const fr = new FileReader();
+    fr.onerror = () => rej(new Error("Could not read that image."));
+    fr.onload = () => {
+      const img = new Image();
+      img.onerror = () => rej(new Error("Could not read that image."));
+      img.onload = () => {
+        const s = Math.min(1, max/Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width*s); c.height = Math.round(img.height*s);
+        c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+        res(c.toDataURL("image/jpeg", q));
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
 }
 
-function download(name, text, mime){
-  const b = new Blob([text], {type: mime||"text/plain;charset=utf-8"});
-  const u = URL.createObjectURL(b);
-  const a = document.createElement("a");
-  a.href = u; a.download = name; document.body.appendChild(a); a.click();
-  setTimeout(()=>{ URL.revokeObjectURL(u); a.remove(); }, 400);
+/* ============ render: chrome ============ */
+function renderStatuses(){
+  const pend = db.records.filter(r=>r.sync==="pending").length;
+  const on = navigator.onLine;
+  const g = state.here;
+  const gpsCls = !g ? "mute" : g.acc <= 20 ? "ok" : "warn";
+  const gpsTxt = !g ? "No fix" : Math.round(g.acc)+" ft";
+  $("#statuses").innerHTML =
+    `<span class="pill ${gpsCls}" title="Live position accuracy"><i class="dot ${g?"live":""}"></i>${gpsTxt}</span>` +
+    (pend
+      ? `<button class="pill warn tap" data-act="sync" title="Upload queued records">${pend} queued</button>`
+      : `<span class="pill ${on?"ok":"mute"}">${on?"Synced":"Offline"}</span>`);
+  const s = db.settings;
+  $("#jobline").textContent = s.job
+    ? `${s.job} · Crew ${s.crew}${s.tech ? " · " + s.tech : ""}`
+    : "No job set — open Setup";
 }
 
-function init(){
-  buildSelects();
-  let start = Object.assign({}, DEFAULTS);
-  try{
-    const s = localStorage.getItem("srtp-reel-designer-v5");
-    if(s){
-      start = Object.assign(start, JSON.parse(s));
-      if(start._dim) for(const k of Object.keys(DIMPOS_DEFAULT))
-        if(start._dim[k]) Object.assign(dimPos[k], start._dim[k]);
+function renderTabs(){
+  const untagged = db.records.filter(r=>!r.tagPrinted).length;
+  const t = [
+    ["log","Log",ICON.pin,0],
+    ["tags","Tags",ICON.tag,untagged],
+    ["export","Export",ICON.cloud,0],
+    ["setup","Setup",ICON.gear,0]
+  ];
+  $("#tabbar").innerHTML = t.map(([id,label,icon,count])=>
+    `<button data-tab="${id}" aria-current="${state.tab===id}">${icon}<span>${label}${
+      count?`<i class="tabcount">${count}</i>`:""
+    }</span></button>`).join("");
+}
+
+/* ============ render: log tab ============ */
+function viewLog(){
+  const recs = db.records.filter(isInstalled).sort((a,b)=> b.at.localeCompare(a.at));
+  const waiting = db.records.filter(r=>!isInstalled(r)).length;
+  const pend = recs.filter(r=>r.sync==="pending").length;
+  const ready = !!db.settings.job;
+
+  let html = `
+    <div>
+      <div class="eyebrow">Field log</div>
+      <h2>${recs.length} installed</h2>
+    </div>
+    <div class="btnrow">
+      <button class="btn primary" data-act="scan">${ICON.scan} Scan tag</button>
+      <button class="btn" data-act="new" ${ready?"":"disabled"}>${ICON.plus} No tag</button>
+    </div>`;
+
+  if(!ready){
+    html += `<div class="card card-pad stack">
+      <div class="eyebrow">First run</div>
+      <p style="margin:0;font-size:14.5px;color:var(--ink-2)">Scanning a tag prepared in the shop works right away — the code carries its own details. To log a joint without a tag, or to prepare tags, set a job number and crew letter first.</p>
+      <button class="btn wide" data-act="gosetup">${ICON.gear} Open setup</button>
+    </div>`;
+  }
+
+  if(waiting){
+    html += `<div class="notice ok">${ICON.tag}<div><b>${waiting} prepared tag${waiting===1?"":"s"} on this device waiting to be installed.</b>
+      Scan the tag at the joint to fill in the position and photos.</div></div>`;
+  }
+
+  if(!recs.length){
+    html += `<div class="card card-pad empty">${ICON.scan}
+      <p>Nothing installed yet. At the joint, tap <b>Scan tag</b> and point the camera at the code — the shop details load, and you add the position and photos.</p>
+    </div>`;
+    return html;
+  }
+
+  html += plotCard(recs);
+
+  if(pend){
+    html += `<div class="notice warn">${ICON.warn}<div><b>${pend} record${pend===1?"":"s"} waiting to upload.</b>
+      They are saved on this device. Tap the queue counter when you have signal.</div></div>`;
+  }
+
+  html += `<div class="stack">` + recs.map(r=>{
+    const d = state.here ? feetBetween(state.here, r.pos) : null;
+    return `<button class="rec ${r.sync}" data-open="${r.id}">
+      <div class="rec-top">
+        <span class="rec-id">${esc(r.id)}</span>
+        <span class="rec-type">${esc(r.type)} · ${esc(r.size)}</span>
+      </div>
+      <div class="rec-meta">
+        <span>${fmtDate(r.at)}</span>
+        <span>${r.pos.source==="manual" ? "by hand" : "±"+Math.round(r.pos.acc)+" ft"}</span>
+        <span>${(r.photos||[]).length} photo${(r.photos||[]).length===1?"":"s"}</span>
+        ${d!=null?`<span>${fmtFt(d)} away</span>`:""}
+      </div>
+      <div class="rec-chips">
+        <span class="pill ${r.sync==="synced"?"ok":"warn"}">${r.sync==="synced"?"Synced":"Queued"}</span>
+        ${r.tagApplied ? `<span class="pill ok">Tag on</span>`
+          : r.tagPrinted ? `<span class="pill mute">Tag printed</span>`
+          : `<span class="pill mute">No tag</span>`}
+      </div>
+    </button>`;
+  }).join("") + `</div>`;
+
+  return html;
+}
+
+function plotCard(recs){
+  return `<div class="card">
+    <div class="plotwrap"><canvas id="plot"></canvas></div>
+    <div class="plotkey">
+      <span><i class="sw" style="background:var(--accent)"></i>Splice</span>
+      <span><i class="sw" style="background:var(--signal)"></i>Queued</span>
+      <span><i class="sw" style="background:var(--ink)"></i>You</span>
+      <span id="scalebar"></span>
+    </div>
+  </div>`;
+}
+
+function drawPlot(){
+  const c = $("#plot"); if(!c) return;
+  const cs = getComputedStyle(document.documentElement);
+  const col = n => cs.getPropertyValue(n).trim();
+  const dpr = window.devicePixelRatio || 1;
+  const w = c.clientWidth, h = 200;
+  c.width = w*dpr; c.height = h*dpr;
+  const g = c.getContext("2d");
+  g.setTransform(dpr,0,0,dpr,0,0);
+  g.clearRect(0,0,w,h);
+
+  const pts = db.records.filter(isInstalled).map(r=>({lat:r.pos.lat, lon:r.pos.lon, sync:r.sync, me:false}));
+  if(state.here) pts.push({lat:state.here.lat, lon:state.here.lon, me:true});
+  if(!pts.length) return;
+
+  const lat0 = pts.reduce((s,p)=>s+p.lat,0)/pts.length;
+  const mPerLat = 364000, mPerLon = 364000*Math.cos(lat0*Math.PI/180); // feet per degree
+  const xs = pts.map(p=>p.lon*mPerLon), ys = pts.map(p=>p.lat*mPerLat);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const spanX = Math.max(maxX-minX, 120), spanY = Math.max(maxY-minY, 120);
+  const pad = 26;
+  const k = Math.min((w-pad*2)/spanX, (h-pad*2)/spanY);
+  const cx = (minX+maxX)/2, cy = (minY+maxY)/2;
+  const X = v => w/2 + (v-cx)*k;
+  const Y = v => h/2 - (v-cy)*k;
+
+  // faint grid
+  g.strokeStyle = col("--line"); g.lineWidth = 1;
+  for(let i=1;i<4;i++){
+    g.beginPath(); g.moveTo(0,h*i/4); g.lineTo(w,h*i/4); g.stroke();
+    g.beginPath(); g.moveTo(w*i/4,0); g.lineTo(w*i/4,h); g.stroke();
+  }
+  // connecting run
+  const line = pts.filter(p=>!p.me).sort((a,b)=>a.lon-b.lon);
+  if(line.length>1){
+    g.strokeStyle = col("--line-strong"); g.lineWidth = 1.5; g.setLineDash([4,4]);
+    g.beginPath();
+    line.forEach((p,i)=>{ const x=X(p.lon*mPerLon), y=Y(p.lat*mPerLat); i?g.lineTo(x,y):g.moveTo(x,y); });
+    g.stroke(); g.setLineDash([]);
+  }
+  // points
+  pts.forEach(p=>{
+    const x = X(p.lon*mPerLon), y = Y(p.lat*mPerLat);
+    if(p.me){
+      g.fillStyle = col("--ink");
+      g.beginPath(); g.arc(x,y,4.5,0,7); g.fill();
+      g.strokeStyle = col("--ink"); g.lineWidth = 1.2;
+      g.beginPath(); g.arc(x,y,10,0,7); g.stroke();
+    }else{
+      g.fillStyle = p.sync==="synced" ? col("--accent") : col("--signal");
+      g.beginPath(); g.arc(x,y,5,0,7); g.fill();
+      g.strokeStyle = col("--panel"); g.lineWidth = 1.5; g.stroke();
     }
-  }catch(e){}
-  setUI(start);
+  });
+  // scale
+  const target = (w-pad*2)/3;
+  const raw = target/k;
+  const nice = [25,50,100,250,500,1000,2500,5280].find(n=>n>=raw) || 5280;
+  const sb = $("#scalebar");
+  if(sb) sb.textContent = "scale ≈ " + fmtFt(nice) + " per " + Math.round(nice*k) + " px";
+}
 
-  [...NUMKEYS, ...TXTKEYS, ...SELKEYS].forEach(k=>{
-    $(k).addEventListener("input", ()=>{ syncSliders(); render(); });
-  });
-  [["spR","sp"],["hdR","hd"],["tvR","tv"]].forEach(([s,n])=>{
-    $(s).addEventListener("input", ()=>{ $(n).value = $(s).value; render(); });
-  });
-  $("preset").addEventListener("change", ()=>{
-    const v = $("preset").value;
-    if(v==="custom") return;
-    const [a,b,c] = v.split(",").map(Number);
-    $("sp").value=a; $("hd").value=b; $("tv").value=c; syncSliders(); render();
-  });
+/* ============ render: tags tab ============ */
+function viewTags(){
+  const ready = !!db.settings.job;
+  const queue    = db.records.filter(r=>!r.tagPrinted);
+  const outbound = db.records.filter(r=>r.tagPrinted && !isInstalled(r));
+  const loose    = db.records.filter(r=>r.tagPrinted && isInstalled(r) && !r.tagApplied);
+  const done     = db.records.filter(r=>isInstalled(r) && r.tagApplied);
 
-  $("btnPrint").onclick = ()=>window.print();
-  $("btnSvg").onclick = ()=>{
-    const svg = $("sheetView").innerHTML;
-    download(window.__state.p.partno + ".svg",
-      '<?xml version="1.0" encoding="UTF-8"?>\n' + svg, "image/svg+xml");
-  };
-  $("btnDxf").onclick = ()=>{
-    download(window.__state.p.partno + ".dxf", buildDXF(window.__state.p),
-      "application/dxf");
-  };
-  $("btnBom").onclick = ()=>{
-    const {p,to} = window.__state;
-    const L = ["Part no\t"+p.partno, "Spool OD\t"+fmt(p.sp), "Hub OD\t"+fmt(p.hd),
-               "Traverse\t"+fmt(p.tv), "", "Item\tQty\tlb ea\tlb"];
-    to.items.forEach(i=>L.push([i.desc,i.qty,i.each.toFixed(1),Math.round(i.total)].join("\t")));
-    L.push(["Subtotal","","",Math.round(to.sub)].join("\t"));
-    L.push(["Allowance "+fmt(p.allow)+"%","","",Math.round(to.allow)].join("\t"));
-    L.push(["ESTIMATED WEIGHT","","",Math.round(to.total)].join("\t"));
-    navigator.clipboard.writeText(L.join("\n")).then(
-      ()=>{ $("btnBom").textContent="Copied"; setTimeout(()=>$("btnBom").textContent="Copy BOM",1200); },
-      ()=>alert(L.join("\n")));
-  };
-  $("btnCal").onclick = ()=>{
-    const p = readUI();
-    const sub = takeoff(Object.assign({}, p, {allow:0})).total;
-    if(sub > 0 && p.target > 0){
-      $("allow").value = Math.round((p.target/sub - 1) * 100000)/1000;
-      render();
-    }
-  };
-  /* --- drag a dimension by its text; the leader follows --- */
-  const sheetEl = $("sheetView");
-  let drag = null;
-  const svgPt = (svg, e) => {
-    const m = svg.getScreenCTM(); if(!m) return null;
-    const q = svg.createSVGPoint(); q.x = e.clientX; q.y = e.clientY;
-    return q.matrixTransform(m.inverse());
-  };
-  sheetEl.addEventListener("pointerdown", e => {
-    const t = e.target.closest && e.target.closest("[data-dim-text]");
-    if(!t) return;
-    const svg = sheetEl.querySelector("svg"); if(!svg) return;
-    const q = svgPt(svg, e); if(!q) return;
-    const key = t.getAttribute("data-dim-text"), a = dimAnchor(key);
-    drag = {key, svg, ox:q.x - a.x, oy:q.y - a.y};
-    e.preventDefault();
-  });
-  window.addEventListener("pointermove", e => {
-    if(!drag) return;
-    const q = svgPt(drag.svg, e); if(!q) return;
-    dimMoveTo(drag.key, q.x - drag.ox, q.y - drag.oy);
-    /* repaint just this dimension -- the whole sheet is far too big to
-       rebuild on every pointer move */
-    const g = drag.svg.querySelector(`g[data-dim="${drag.key}"]`);
-    if(g) g.innerHTML = dimSVG(drag.key);
-  });
-  window.addEventListener("pointerup", ()=>{ if(drag){ drag = null; render(); } });
+  let html = `
+    <div>
+      <div class="eyebrow">Shop</div>
+      <h2>Tags</h2>
+    </div>
+    <div class="card card-pad stack">
+      <p style="margin:0;font-size:14.5px;color:var(--ink-2)">Enter the fitting details here before it ships. The printed code carries them, so in the field the crew only scans, captures the position, and adds photos.</p>
+      <button class="btn primary wide" data-act="prep" ${ready?"":"disabled"}>${ICON.plus} Prepare tags</button>
+      ${ready ? "" : `<p class="hint" style="margin:0;font-size:13px;color:var(--muted)">Set a job number in Setup first — it goes into every tag ID.</p>`}
+    </div>`;
 
-  $("btnResetDims").onclick = ()=>{
-    dimPos = JSON.parse(JSON.stringify(DIMPOS_DEFAULT));
-    render();
-  };
-  $("btnLastReel").onclick = ()=>{
-    const s = window.__state;
-    if(s && s.lastReelFt > 0){
-      $("fillMode").value = "spec";
-      $("fillLen").value  = Math.round(s.lastReelFt*10)/10;
-      render();
-    }
-  };
-  $("btnReset").onclick = ()=>{
-    dimPos = JSON.parse(JSON.stringify(DIMPOS_DEFAULT));
-    setUI(DEFAULTS); render();
-  };
+  html += `<div class="card">
+    <div class="card-pad spread" style="border-bottom:1px solid var(--line)">
+      <h3>Print queue · ${queue.length}</h3>
+      ${queue.length?`<button class="btn sm" data-act="selall">Select all</button>`:""}
+    </div>`;
+  if(!queue.length){
+    html += `<div class="card-pad empty" style="padding:22px">${ICON.tag}<p>Nothing waiting to print.</p></div>`;
+  }else{
+    html += queue.map(r=>`
+      <label class="tagrow">
+        <input type="checkbox" class="tagpick" value="${esc(r.id)}">
+        <span class="who"><b>${esc(r.id)}</b><span>${esc(specLine(r))}</span></span>
+        <span class="pill ${isInstalled(r)?"ok":"mute"}">${isInstalled(r)?"Installed":"Prepared"}</span>
+      </label>`).join("");
+    html += `<div class="card-pad btnrow" style="border-top:1px solid var(--line)">
+      <button class="btn primary" data-act="printsheet">${ICON.print} Print tags</button>
+      <button class="btn" data-act="makecsv">Label file</button>
+    </div>`;
+  }
+  html += `</div>`;
 
+  if(queue.length){
+    const r = queue[0];
+    html += `<div class="card card-pad stack">
+      <div class="eyebrow">What gets printed</div>
+      <div class="tagpreview">
+        <div class="qr">${qrOrNote(tagContent(r))}</div>
+        <div class="txt">
+          <b>${esc(r.id)}</b>
+          <span>${esc(specLine(r))}</span>
+          <span>SPECIALTY RTP · ${esc(jobOf(r))}</span>
+        </div>
+      </div>
+      <p class="hint" style="font-size:13px;color:var(--muted);margin:0">Code and number both. If the code gets scratched off, the ID is still readable and can be typed in.</p>
+      ${tagBase() ? "" : `<div class="notice warn">${ICON.warn}<div><b>No site address set.</b> The in-app scanner will read these codes, but a phone's own camera won't open anything. Set the address in Setup before printing real tags.</div></div>`}
+    </div>`;
+  }
+
+  if(outbound.length){
+    html += `<div class="card">
+      <div class="card-pad" style="border-bottom:1px solid var(--line)"><h3>Printed · waiting for install · ${outbound.length}</h3></div>
+      ${outbound.map(r=>`<button class="tagrow" style="width:100%;text-align:left" data-open="${esc(r.id)}">
+        <span class="who"><b>${esc(r.id)}</b><span>${esc(specLine(r))}</span></span>
+        <span class="pill mute">Out</span>
+      </button>`).join("")}
+    </div>`;
+  }
+
+  if(loose.length){
+    html += `<div class="card">
+      <div class="card-pad" style="border-bottom:1px solid var(--line)"><h3>Printed, not yet on the pipe · ${loose.length}</h3></div>
+      ${loose.map(r=>`<div class="tagrow">
+        <span class="who"><b>${esc(r.id)}</b><span>Printed ${fmtDate(r.tagPrinted)}</span></span>
+        <button class="btn sm" data-applied="${esc(r.id)}">Mark applied</button>
+      </div>`).join("")}
+    </div>`;
+  }
+
+  if(done.length){
+    html += `<div class="card">
+      <div class="card-pad" style="border-bottom:1px solid var(--line)"><h3>Installed and tagged · ${done.length}</h3></div>
+      ${done.map(r=>`<button class="tagrow" style="width:100%;text-align:left" data-open="${esc(r.id)}">
+        <span class="who"><b>${esc(r.id)}</b><span>Installed ${fmtDate(r.at)}</span></span>
+        <span class="pill ok">Done</span>
+      </button>`).join("")}
+    </div>`;
+  }
+  return html;
+}
+
+/* ============ render: export tab ============ */
+function viewExport(){
+  const n = db.records.length;
+  const shots = db.records.reduce((s,r)=>s+(r.photos||[]).length, 0);
+  const bytes = db.records.reduce((s,r)=>
+    s + (r.photos||[]).reduce((t,p)=>t + Math.round((p.length||0)*0.75), 0), 0);
+  const mb = (bytes/1048576).toFixed(1);
+
+  let html = `<div><div class="eyebrow">Get the data out</div><h2>Export</h2></div>`;
+
+  if(!n){
+    html += `<div class="card card-pad empty">${ICON.cloud}
+      <p>Nothing to export yet. Log a splice and it will show up here.</p></div>`;
+    return html;
+  }
+
+  const inst = db.records.filter(isInstalled).length;
+  html += `<div class="card card-pad">
+    <dl class="readout" style="margin:0">
+      <dt>Records</dt><dd>${n}</dd>
+      <dt>Installed</dt><dd>${inst}${n>inst?` · ${n-inst} prepared, no position yet`:""}</dd>
+      <dt>Photos</dt><dd>${shots}</dd>
+      <dt>Photo data</dt><dd>${mb} MB</dd>
+      <dt>Datum</dt><dd>WGS84</dd>
+    </dl>
+  </div>`;
+
+  html += `<div class="card card-pad stack">
+    <h3>Google Earth</h3>
+    <p style="margin:0;font-size:14px;color:var(--ink-2)">A KMZ with every point, its details, and the photos bundled inside. Tap a pin in Google Earth and the photos show in the balloon.</p>
+    <button class="btn primary wide" data-act="kmz">${ICON.cloud} Export KMZ</button>
+  </div>`;
+
+  html += `<div class="card card-pad stack">
+    <h3>Google My Maps · GIS</h3>
+    <p style="margin:0;font-size:14px;color:var(--ink-2)">KML for My Maps or ArcGIS. Points and descriptions only — My Maps cannot read photos out of a file, so those stay in the KMZ.</p>
+    <button class="btn wide" data-act="kml">Export KML</button>
+  </div>`;
+
+  html += `<div class="card card-pad stack">
+    <h3>Spreadsheet</h3>
+    <p style="margin:0;font-size:14px;color:var(--ink-2)">One row per record — prepared ones included, with blank coordinates — plus accuracy and notes. Opens in Excel. The map files above only carry installed joints, since a prepared tag has no position yet.</p>
+    <button class="btn wide" data-act="csv">Export CSV</button>
+  </div>`;
+
+  html += `<div class="card card-pad stack">
+    <h3>Backup</h3>
+    <p style="margin:0;font-size:14px;color:var(--ink-2)">Everything, photos included, in one file you can load back later. Records live only in this browser — clearing site data wipes them, so keep a backup.</p>
+    <button class="btn wide" data-act="backup">Save backup</button>
+    <button class="btn sm wide" data-act="restore">Restore from backup</button>
+  </div>`;
+
+  html += `<p style="font-size:12.5px;color:var(--muted);text-align:center;margin:2px 0 0;line-height:1.5">
+    Coordinates are WGS84 decimal degrees, straight from the phone's GNSS.</p>`;
+
+  return html;
+}
+
+/* ============ render: setup tab ============ */
+function viewSetup(){
+  const s = db.settings;
+  return `
+    <div>
+      <div class="eyebrow">Configuration</div>
+      <h2>Setup</h2>
+    </div>
+    <div class="card card-pad">
+      <div class="field">
+        <label for="s-job">Job number</label>
+        <input id="s-job" class="mono-in" value="${esc(s.job)}" data-set="job" placeholder="e.g. J-1142" autocomplete="off">
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label for="s-crew">Crew letter</label>
+          <input id="s-crew" class="mono-in" maxlength="2" value="${esc(s.crew)}" data-set="crew" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="s-tech">Technician</label>
+          <input id="s-tech" value="${esc(s.tech)}" data-set="tech" placeholder="Name" autocomplete="off">
+        </div>
+      </div>
+      <p class="hint" style="color:var(--muted);font-size:13.5px;margin:0">
+        ${ s.job
+          ? `Next ID on this device: <b class="mono-in">${esc(s.job)}-${esc(s.crew)}-${String((db.seq[s.job+"-"+s.crew]||0)+1).padStart(4,"0")}</b><br>`
+          : `<b>Enter a job number to start logging.</b><br>` }
+        The crew letter is what keeps two offline phones from handing out the same number. Give the shop computer its own letter too — S, say — so tags it prepares never collide with IDs a field phone creates.
+      </p>
+    </div>
+
+    <div class="card card-pad stack">
+      <h3>Tag link address</h3>
+      <div class="field" style="margin:0">
+        <label for="s-base">Site address</label>
+        <input id="s-base" class="mono-in" value="${esc(s.tagBase||"")}" data-set="tagBase"
+               placeholder="${esc(defaultBase() || "https://you.github.io/splice-logger/")}" autocomplete="off" inputmode="url">
+      </div>
+      <p style="margin:0;font-size:14px;color:var(--ink-2)">Printed into every code, so a phone's own camera opens this app. Leave blank to use the address this page is running from${defaultBase()?` — currently <span class="mono-in" style="word-break:break-all">${esc(defaultBase())}</span>`:" (none right now: this copy isn't running from a web address)"}.</p>
+      <p style="margin:0;font-size:13px;color:var(--muted)">Settle this before printing real tags. If the address changes later, old tags still scan inside the app but a phone camera will open a dead link.</p>
+    </div>
+
+    <div class="card card-pad stack">
+      <h3>Duplicate guard</h3>
+      <p style="margin:0;font-size:14px;color:var(--ink-2)">Warns before creating a second record within <b class="mono-in">${DUP_FT} ft</b> of an existing splice. Your splices sit hundreds of feet apart, so anything closer is almost certainly the same joint logged twice.</p>
+    </div>
+
+    <div class="card card-pad stack">
+      <h3>Device data</h3>
+      <p style="margin:0;font-size:14px;color:var(--ink-2)">${db.records.length} record${db.records.length===1?"":"s"} stored locally on this device.</p>
+      <button class="btn sm wide danger" data-act="wipe">Erase all records</button>
+    </div>
+
+    <p style="font-size:12.5px;color:var(--muted);text-align:center;margin:2px 0 0;line-height:1.5">
+      Prototype. Records live in this browser only — nothing is uploaded anywhere.
+    </p>`;
+}
+
+/* ============ overlay: new splice ============ */
+function blankSpec(){
+  return { type:SPLICE_TYPES[0], size:PIPE_SIZES[0], material:MATERIALS[0], reel:"", swage:"", insert:"",
+           fitId:"", fitSize:"", fitClass:"", fitBore:"" };
+}
+
+/* Field entry with no tag: the ID is assigned on save. */
+function openNew(){
+  state.draft = Object.assign({ id:null, at:new Date().toISOString(), pos:null, notes:"", photos:[], dup:null }, blankSpec());
+  state.manualOpen = false;
+  state.overlay = "new";
   render();
 }
-init();
+
+/* Field side of a prepared tag. `src` is a local record, or details decoded from the QR. */
+function openComplete(src, viaScan){
+  state.draft = {
+    id:src.id, fromTag:true, viaScan:!!viaScan, specOpen:false,
+    job: src.job || (idParts(src.id)||{}).job || "",
+    prepAt: src.prepAt || null, prepBy: src.prepBy || "", shopNotes: src.shopNotes || "",
+    at:new Date().toISOString(), pos:null,
+    type: src.type || SPLICE_TYPES[0], size: src.size || PIPE_SIZES[0],
+    material: src.material || MATERIALS[0], reel: src.reel || "", swage: src.swage || "", insert: src.insert || "",
+    fitId: src.fitId || "", fitSize: src.fitSize || "", fitClass: src.fitClass || "", fitBore: src.fitBore || "",
+    notes: src.notes || "", photos: (src.photos || []).slice(), dup:null
+  };
+  state.manualOpen = false;
+  state.overlay = "new";
+  render();
+}
+
+/* Shop side: details only, no position. */
+function openPrep(){
+  state.draft = Object.assign({ prep:true, qty:"1", shopNotes:"" }, blankSpec());
+  state.overlay = "prep";
+  render();
+}
+
+function peekId(){
+  const {job,crew} = db.settings;
+  return `${job}-${crew}-${String((db.seq[job+"-"+crew]||0)+1).padStart(4,"0")}`;
+}
+
+function specFields(d){
+  return `
+        <div class="grid2">
+          <div class="field">
+            <label for="f-type">Fitting type</label>
+            <select id="f-type" data-d="type">${SPLICE_TYPES.map(t=>`<option ${t===d.type?"selected":""}>${t}</option>`).join("")}</select>
+          </div>
+          <div class="field">
+            <label for="f-size">Pipe size</label>
+            <select id="f-size" data-d="size">${PIPE_SIZES.map(t=>`<option ${t===d.size?"selected":""}>${t}</option>`).join("")}</select>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="f-mat">Material</label>
+            <select id="f-mat" data-d="material">${MATERIALS.map(t=>`<option ${t===d.material?"selected":""}>${t}</option>`).join("")}</select>
+          </div>
+          <div class="field">
+            <label for="f-reel">Reel number</label>
+            <input id="f-reel" class="mono-in" data-d="reel" value="${esc(d.reel)}" placeholder="R-1180">
+          </div>
+        </div>
+        ${ d.type === "Flange end" ? `
+          <div class="grid2">
+            <div class="field">
+              <label for="f-swage">Swage distance (in)</label>
+              <input id="f-swage" class="mono-in" inputmode="decimal" data-d="swage" value="${esc(d.swage)}">
+            </div>
+            <div class="field">
+              <label for="f-insert">Flange insert depth (in)</label>
+              <input id="f-insert" class="mono-in" inputmode="decimal" data-d="insert" value="${esc(d.insert)}">
+            </div>
+          </div>` : `
+          <div class="field">
+            <label for="f-swage">Swage distance (in)</label>
+            <input id="f-swage" class="mono-in" inputmode="decimal" data-d="swage" value="${esc(d.swage)}">
+          </div>` }
+
+        <div class="sect">
+          <h3 style="margin-bottom:10px;color:var(--ink-2)">${d.type === "Flange end" ? "Flange" : "Coupling"}</h3>
+          <div class="field">
+            <label for="f-fitid">Part / serial no.</label>
+            <input id="f-fitid" class="mono-in" data-d="fitId" value="${esc(d.fitId)}" placeholder="${d.type === "Flange end" ? "FL-4500-ZC-0231" : "CP-4500-SS-0118"}" autocomplete="off" autocapitalize="characters">
+          </div>
+          <div class="grid2">
+            <div class="field">
+              <label for="f-fitsize">Fitting size</label>
+              <input id="f-fitsize" class="mono-in" data-d="fitSize" value="${esc(d.fitSize)}" list="dl-fitsize" placeholder='4"' autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="f-fitclass">Pressure class</label>
+              <input id="f-fitclass" class="mono-in" data-d="fitClass" value="${esc(d.fitClass)}" list="dl-fitclass" placeholder="600#" autocomplete="off">
+            </div>
+          </div>
+          <div class="field">
+            <label for="f-fitbore">Inside diameter (in)</label>
+            <input id="f-fitbore" class="mono-in" inputmode="decimal" data-d="fitBore" value="${esc(d.fitBore)}" placeholder="3.826">
+          </div>
+          <datalist id="dl-fitsize">${FIT_SIZES.map(s=>`<option value="${esc(s)}"></option>`).join("")}</datalist>
+          <datalist id="dl-fitclass">${FIT_CLASSES.map(s=>`<option value="${esc(s)}"></option>`).join("")}</datalist>
+        </div>`;
+}
+
+function specSummary(d){
+  return `
+        <dl class="kv" style="margin-bottom:6px">
+          <dt>Type</dt><dd>${esc(d.type)}</dd>
+          <dt>Size</dt><dd>${esc(d.size)}</dd>
+          <dt>Material</dt><dd>${esc(d.material)}</dd>
+          <dt>Reel</dt><dd>${esc(d.reel)||"—"}</dd>
+          <dt>Swage dist.</dt><dd>${d.swage?esc(d.swage)+" in":"—"}</dd>
+          ${d.type==="Flange end"?`<dt>Insert depth</dt><dd>${d.insert?esc(d.insert)+" in":"—"}</dd>`:""}
+          ${fittingRows(d)}
+        </dl>
+        ${d.shopNotes?`<p style="margin:0 0 10px;font-size:14px;color:var(--ink-2)"><b>Shop notes:</b> ${esc(d.shopNotes)}</p>`:""}
+        <button type="button" class="btn sm wide" data-act="specedit">Correct shop details</button>`;
+}
+
+function viewPrep(){
+  const d = state.draft;
+  return `
+  <div class="overlay">
+    <div class="ovbar">
+      <button class="btn sm" data-act="close">Cancel</button>
+      <h2>Prepare tags</h2>
+    </div>
+    <div class="ovbody">
+      <div class="card card-pad">
+        <div class="eyebrow" style="margin-bottom:11px">Fitting details</div>
+        ${specFields(d)}
+        <div class="field">
+          <label for="p-notes">Shop notes</label>
+          <textarea id="p-notes" data-d="shopNotes" placeholder="Heat number, inspector, anything the field should know.">${esc(d.shopNotes)}</textarea>
+          <span class="hint">Stays with the record on this device. The code itself only carries the fields above, to keep it small enough to scan reliably.</span>
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label for="p-qty">How many tags with these details</label>
+          <input id="p-qty" class="mono-in" inputmode="numeric" data-d="qty" value="${esc(d.qty)}">
+          <span class="hint">Each gets its own ID, starting at <b class="mono-in">${esc(peekId())}</b>. Everything above is copied to every tag — for unique serial numbers, create them one at a time.</span>
+        </div>
+      </div>
+    </div>
+    <div class="ovfoot">
+      <button class="btn" data-act="close">Cancel</button>
+      <button class="btn primary" data-act="prepsave">Create tags</button>
+    </div>
+  </div>`;
+}
+
+function viewNew(){
+  const d = state.draft;
+  const g = d.pos;
+  return `
+  <div class="overlay">
+    <div class="ovbar">
+      <button class="btn sm" data-act="cancel">Cancel</button>
+      <h2>${d.id ? esc(d.id) : "New splice"}</h2>
+    </div>
+    <div class="ovbody">
+
+      ${ d.fromTag ? `<div class="notice ok" style="margin-bottom:13px">${ICON.tag}<div>
+          <b>Tag ${esc(d.id)}.</b> Shop details are already filled in — capture the position and add photos.
+        </div></div>` : "" }
+
+      <div class="card card-pad gps ${g?"locked":""}" style="margin-bottom:13px">
+        <div class="eyebrow" style="margin-bottom:8px">Step 1 · Position</div>
+        ${ g ? `
+          <div class="row" style="align-items:flex-end;gap:12px">
+            <div class="acc-big">${g.source==="manual" ? `<small style="margin:0">Entered by hand</small>` : `±${g.acc}<small>ft</small>`}</div>
+            ${g.source==="manual" ? `` : `<span class="pill ok">${ICON_ok()}Fix held</span>`}
+          </div>
+          <dl class="readout">
+            <dt>Lat</dt><dd>${fmtCoord(g.lat)}</dd>
+            <dt>Lon</dt><dd>${fmtCoord(g.lon)}</dd>
+            <dt>Source</dt><dd>${g.source==="manual" ? "Typed in" : g.n+" reading"+(g.n===1?"":"s")+" averaged"}</dd>
+          </dl>
+          ${ d.dup ? `<div class="notice warn" style="margin-bottom:10px">${ICON.warn}<div>
+              <b>${esc(d.dup.id)} is ${fmtFt(d.dup.ft)} from here.</b>
+              That is inside the ${DUP_FT} ft guard — check you are not logging the same joint twice.
+            </div></div>` : "" }
+          <button class="btn sm wide" data-act="refix">Re-capture position</button>
+        ` : `
+          <p style="margin:0 0 11px;font-size:14.5px;color:var(--ink-2)">Stand at the splice with a clear view of the sky. The app takes ${AVG_TARGET} readings and averages them.</p>
+          <div id="fixstatus"></div>
+          <button class="btn primary wide" data-act="fix">${ICON.sat} Capture position</button>
+          ${ state.manualOpen ? `
+            <div class="sect" style="margin-top:13px">
+              <h3 style="margin-bottom:10px;color:var(--ink-2)">Enter by hand</h3>
+              <div class="grid2">
+                <div class="field">
+                  <label for="m-lat">Latitude</label>
+                  <input id="m-lat" class="mono-in" inputmode="text" data-m="lat"
+                         value="${esc(state.manualLat||"")}" placeholder="32.241070" autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="m-lon">Longitude</label>
+                  <input id="m-lon" class="mono-in" inputmode="text" data-m="lon"
+                         value="${esc(state.manualLon||"")}" placeholder="-101.478320" autocomplete="off">
+                </div>
+              </div>
+              <p class="hint" style="color:var(--muted);font-size:13px;margin:0 0 11px">
+                Decimal degrees. You can also paste both into the latitude box as <span class="mono-in">lat, lon</span>.
+              </p>
+              <button class="btn primary wide" data-act="usemanual">Use these coordinates</button>
+              <button class="btn sm wide" data-act="manualcancel" style="margin-top:8px">Cancel</button>
+            </div>
+          ` : `
+            <button class="btn sm wide" data-act="manual" style="margin-top:8px">Enter coordinates by hand</button>
+          `}
+        `}
+      </div>
+
+      <fieldset class="card card-pad" style="margin-bottom:13px;${g?"":"opacity:.5"}" ${g?"":"disabled"}>
+        <div class="eyebrow" style="margin-bottom:11px">Step 2 · The joint</div>
+        ${ d.fromTag && !d.specOpen ? specSummary(d) : specFields(d) }
+
+        <div class="sect">
+          <h3 style="margin-bottom:10px">Step 3 · Photos${d.photos.length?` · ${d.photos.length}`:""}</h3>
+          <div class="shots">
+            ${d.photos.map((p,i)=>`
+              <div class="shot filled">
+                <img src="${p}" alt="Photo ${i+1}">
+                <button class="x" data-drop="${i}" aria-label="Remove photo ${i+1}">×</button>
+              </div>`).join("")}
+            ${d.photos.length < MAX_PHOTOS ? `
+              <button class="shot" data-act="addshot">
+                ${ICON.cam}<span class="lbl">Add photo</span>
+              </button>` : ""}
+          </div>
+        </div>
+
+        <div class="sect">
+          <div class="field" style="margin-bottom:0">
+            <label for="f-notes">${d.fromTag ? "Field notes" : "Notes"}</label>
+            <textarea id="f-notes" data-d="notes" placeholder="Anything the next crew needs to know.">${esc(d.notes)}</textarea>
+          </div>
+        </div>
+      </fieldset>
+    </div>
+    <div class="ovfoot">
+      <button class="btn" data-act="cancel">Discard</button>
+      <button class="btn primary" data-act="saverec" ${g?"":"disabled"}>${d.fromTag ? "Save install" : "Save splice"}</button>
+    </div>
+    <input type="file" id="shotinput" accept="image/*" multiple hidden>
+  </div>`;
+}
+function ICON_ok(){ return '<svg style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.6" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9.5 18 20 6.5"/></svg>'; }
+
+/* ============ overlay: detail ============ */
+function viewDetail(){
+  const r = db.records.find(x=>x.id===state.overlay); if(!r) return "";
+  const inst = isInstalled(r);
+  const d = inst && state.here ? feetBetween(state.here, r.pos) : null;
+  const shots = (r.photos || []).filter(Boolean);
+  return `
+  <div class="overlay">
+    <div class="ovbar">
+      <button class="btn sm" data-act="close">Back</button>
+      <h2 style="font-family:'IBM Plex Mono',monospace;font-size:16px">${esc(r.id)}</h2>
+      ${inst ? `<span class="pill ${r.sync==="synced"?"ok":"warn"}">${r.sync==="synced"?"Synced":"Queued"}</span>`
+             : `<span class="pill mute">Prepared</span>`}
+    </div>
+    <div class="ovbody stack">
+
+      ${ inst ? "" : `<div class="card card-pad stack">
+        <div class="eyebrow">Not installed yet</div>
+        <p style="margin:0;font-size:14.5px;color:var(--ink-2)">Prepared ${r.prepAt?fmtDate(r.prepAt):""}${r.prepBy?` by ${esc(r.prepBy)}`:""}. Scanning the tag at the joint fills in the position and photos. If the tag is unreadable, you can install from here instead.</p>
+        <button class="btn primary wide" data-act="install" data-id="${esc(r.id)}">${ICON.sat} Install without scanning</button>
+      </div>` }
+
+      ${ inst ? `<div class="card card-pad">
+        <div class="eyebrow" style="margin-bottom:9px">Position</div>
+        <div class="row" style="align-items:flex-end;gap:12px;margin-bottom:4px">
+          <div class="acc-big">${r.pos.source==="manual" ? `<small style="margin:0">Entered by hand</small>` : `±${Math.round(r.pos.acc)}<small>ft</small>`}</div>
+          ${d!=null?`<span class="pill mute">${fmtFt(d)} from you</span>`:""}
+        </div>
+        <dl class="readout" style="margin-bottom:10px">
+          <dt>Lat</dt><dd>${fmtCoord(r.pos.lat)}</dd>
+          <dt>Lon</dt><dd>${fmtCoord(r.pos.lon)}</dd>
+          <dt>Source</dt><dd>${r.pos.source==="manual" ? "Typed in" : r.pos.n+" readings averaged"}</dd>
+          <dt>Installed</dt><dd>${fmtDate(r.at)}</dd>
+        </dl>
+        <button class="btn sm wide" data-copy="${r.pos.lat.toFixed(6)}, ${r.pos.lon.toFixed(6)}">Copy coordinates</button>
+      </div>` : "" }
+
+      ${shots.length?`<div class="card card-pad">
+        <div class="eyebrow" style="margin-bottom:9px">Photos · ${shots.length}</div>
+        <div class="shots">${shots.map((p,i)=>`
+          <div class="shot filled"><img src="${p}" alt="Photo ${i+1}"></div>`).join("")}
+        </div>
+      </div>`:""}
+
+      <div class="card card-pad">
+        <div class="eyebrow" style="margin-bottom:10px">Record</div>
+        <dl class="kv">
+          <dt>Type</dt><dd>${esc(r.type)}</dd>
+          <dt>Size</dt><dd>${esc(r.size)}</dd>
+          <dt>Material</dt><dd>${esc(r.material)||"—"}</dd>
+          <dt>Reel</dt><dd>${esc(r.reel)||"—"}</dd>
+          <dt>Swage dist.</dt><dd>${r.swage?esc(r.swage)+" in":"—"}</dd>
+          ${r.type==="Flange end"?`<dt>Insert depth</dt><dd>${r.insert?esc(r.insert)+" in":"—"}</dd>`:""}
+          ${fittingRows(r)}
+          <dt>Job</dt><dd>${esc(jobOf(r))||"—"}</dd>
+          ${r.prepAt?`<dt>Prepared</dt><dd>${fmtDate(r.prepAt)}${r.prepBy?" · "+esc(r.prepBy):""}</dd>`:""}
+          ${inst?`<dt>Installed by</dt><dd>${esc(r.crew)}${r.tech?" · "+esc(r.tech):""}</dd>`:""}
+        </dl>
+        ${r.shopNotes?`<p style="margin:6px 0 0;font-size:14px;color:var(--ink-2);border-top:1px solid var(--line);padding-top:9px"><b>Shop:</b> ${esc(r.shopNotes)}</p>`:""}
+        ${r.notes?`<p style="margin:6px 0 0;font-size:14px;color:var(--ink-2);border-top:1px solid var(--line);padding-top:9px"><b>Field:</b> ${esc(r.notes)}</p>`:""}
+      </div>
+
+      <div class="card card-pad stack">
+        <div class="eyebrow">Tag</div>
+        <div class="tagpreview">
+          <div class="qr">${qrOrNote(tagContent(r))}</div>
+          <div class="txt">
+            <b>${esc(r.id)}</b>
+            <span>${esc(specLine(r))}</span>
+          </div>
+        </div>
+        <div class="row" style="flex-wrap:wrap">
+          <span class="pill ${r.tagPrinted?"ok":"mute"}">${r.tagPrinted?"Printed":"Not printed"}</span>
+          <span class="pill ${r.tagApplied?"ok":"mute"}">${r.tagApplied?"On the pipe":"Not applied"}</span>
+        </div>
+        <button class="btn sm wide" data-act="printone" data-id="${esc(r.id)}">${ICON.print} ${r.tagPrinted?"Reprint this tag":"Print this tag"}</button>
+        ${!r.tagApplied && r.tagPrinted && inst ? `<button class="btn sm wide" data-applied="${esc(r.id)}">Mark tag applied</button>`:""}
+      </div>
+
+      <button class="btn danger wide" data-del="${esc(r.id)}">Delete record</button>
+    </div>
+  </div>`;
+}
+
+/* ============ overlay: csv ============ */
+function viewCsv(){
+  const ids = state.csvIds || [];
+  const rows = db.records.filter(r=>ids.includes(r.id));
+  // every field quoted: pipe sizes carry an inch mark, which breaks an unquoted CSV
+  const q = s => `"${String(s==null?"":s).replace(/"/g,'""')}"`;
+  const csv = ["tag_id,job,fitting_type,pipe_size,material,reel,swage_distance_in,flange_insert_depth_in,fitting_part_no,fitting_size,pressure_class,fitting_id_in,status,install_date,latitude,longitude,qr_content"]
+    .concat(rows.map(r=>{
+      const inst = isInstalled(r);
+      return [
+        r.id, jobOf(r), r.type, r.size, r.material, r.reel, r.swage,
+        r.type==="Flange end" ? r.insert : "",
+        r.fitId || "", r.fitSize || "", r.fitClass || "", r.fitBore || "",
+        inst ? "installed" : "prepared",
+        inst ? new Date(r.at).toISOString().slice(0,10) : "",
+        inst ? r.pos.lat.toFixed(6) : "", inst ? r.pos.lon.toFixed(6) : "",
+        tagContent(r)
+      ].map(q).join(",");
+    })).join("\n");
+  return `
+  <div class="overlay">
+    <div class="ovbar">
+      <button class="btn sm" data-act="close">Back</button>
+      <h2>Label file · ${rows.length} tag${rows.length===1?"":"s"}</h2>
+    </div>
+    <div class="ovbody stack">
+      <div class="notice ok">${ICON.check}<div>For label software mail-merge (ZebraDesigner, P-touch Editor) or a metal tag vendor. Point the label's <b>QR code</b> object at the <span class="mono-in">qr_content</span> column — that's what makes the scan fill in the details.</div></div>
+      <textarea class="csv" readonly id="csvbox">${esc(csv)}</textarea>
+      <button class="btn wide" data-act="tagcsvfile">Save as file</button>
+      <button class="btn sm wide" data-copy-csv="1">Copy to clipboard</button>
+    </div>
+    <div class="ovfoot">
+      <button class="btn" data-act="close">Not yet</button>
+      <button class="btn primary" data-act="markprinted">Mark ${rows.length} printed</button>
+    </div>
+  </div>`;
+}
+
+/* ============ overlay: printable tag sheet ============ */
+function viewPrint(){
+  const ids = state.csvIds || [];
+  const rows = db.records.filter(r=>ids.includes(r.id));
+  const libOk = typeof qrcode === "function";
+  return `
+  <div class="overlay">
+    <div class="ovbar">
+      <button class="btn sm" data-act="close">Back</button>
+      <h2>Print · ${rows.length} tag${rows.length===1?"":"s"}</h2>
+    </div>
+    <div class="ovbody stack">
+      <div class="notice ok noprint">${ICON.print}<div>Each tag is 2.6 × 1.3 in. Print at <b>100% / actual size</b> — fit-to-page shrinks the code. Easiest from a computer; on a phone use Share → Print.</div></div>
+      ${libOk ? "" : `<div class="notice bad noprint">${ICON.warn}<div>The QR library didn't load, so these tags have no code. Reload this page with signal before printing.</div></div>`}
+      <div class="sheet">
+        ${rows.map(r=>`
+          <div class="ptag">
+            <div class="qr">${qrOrNote(tagContent(r))}</div>
+            <div class="txt">
+              <b>${esc(r.id)}</b>
+              <span>${esc(r.type)} · ${esc(r.size)}</span>
+              <span>${esc(r.material)}</span>
+              ${r.swage?`<span>Swage ${esc(r.swage)} in${r.type==="Flange end"&&r.insert?` · Insert ${esc(r.insert)} in`:""}</span>`:""}
+              ${r.fitSize||r.fitClass?`<span>${r.type==="Flange end"?"Flange":"Coupling"} ${esc(r.fitSize)}${r.fitSize&&r.fitClass?" · ":""}${esc(r.fitClass)}</span>`:""}
+              ${r.fitId?`<span>No. ${esc(r.fitId)}</span>`:""}
+              <span class="brand">SPECIALTY RTP</span>
+            </div>
+          </div>`).join("")}
+      </div>
+    </div>
+    <div class="ovfoot">
+      <button class="btn" data-act="doprint">${ICON.print} Print</button>
+      <button class="btn primary" data-act="markprinted">Mark ${rows.length} printed</button>
+    </div>
+  </div>`;
+}
+
+/* ============ overlay: scanner ============ */
+function viewScan(){
+  return `
+  <div class="overlay">
+    <div class="ovbar">
+      <button class="btn sm" data-act="scanclose">Cancel</button>
+      <h2>Scan tag</h2>
+    </div>
+    <div class="ovbody stack">
+      <div class="scanbox">
+        <video id="scanvideo" playsinline muted autoplay></video>
+        <div class="scanframe"></div>
+      </div>
+      <p class="scanmsg" id="scanmsg">${state.scanErr ? "Camera off" : "Starting camera…"}</p>
+      ${state.scanErr ? `<div class="notice bad">${ICON.warn}<div>${esc(state.scanErr)}</div></div>` : ""}
+      <button class="btn wide" data-act="scanphoto">${ICON.cam} Scan from a photo</button>
+      <div class="sect">
+        <h3 style="margin-bottom:10px;color:var(--ink-2)">Or type the ID</h3>
+        <div class="field">
+          <label for="scan-id">Tag ID</label>
+          <input id="scan-id" class="mono-in" data-m="id" value="${esc(state.scanId||"")}" placeholder="J-1142-S-0001" autocomplete="off" autocapitalize="characters">
+          <span class="hint">Only finds tags prepared on this device. A code from another device has to be scanned — the details travel in the code.</span>
+        </div>
+        <button class="btn sm wide" data-act="scanid">Open</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+let scanStream = null, scanTimer = null, scanCanvas = null;
+
+function stopScanner(){
+  if(scanTimer){ clearTimeout(scanTimer); scanTimer = null; }
+  if(scanStream){ try{ scanStream.getTracks().forEach(t=>t.stop()); }catch(e){} scanStream = null; }
+}
+
+function scanFail(msg){
+  stopScanner();
+  state.scanErr = msg;
+  render();                       // only re-render after the camera is released
+}
+
+async function startScanner(){
+  stopScanner();
+  const msg = $("#scanmsg");
+  if(typeof jsQR !== "function"){
+    return scanFail("The scanner didn't load. Open this page once with signal, keep the tab open, then scan. Typing the ID still works.");
+  }
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    return scanFail("This browser can't open the camera here. Use Scan from a photo instead.");
+  }
+  try{
+    // ask for HD: the tag is small in frame, and the decoder needs ~4 px per QR square
+    scanStream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:{ ideal:"environment" }, width:{ ideal:1920 }, height:{ ideal:1080 } }, audio:false });
+  }catch(err){
+    const denied = err && (err.name === "NotAllowedError" || err.name === "SecurityError");
+    return scanFail(denied
+      ? "Camera permission was denied. Allow it for this site in your browser settings, or use Scan from a photo."
+      : "Couldn't start the camera. Use Scan from a photo instead.");
+  }
+  const v = $("#scanvideo");
+  if(!v || state.overlay !== "scan"){ stopScanner(); return; }
+  v.srcObject = scanStream;
+  try{ await v.play(); }catch(e){}
+  if(msg) msg.textContent = "Point the camera at the code on the tag.";
+  scanTick();
+}
+
+function scanTick(){
+  scanTimer = null;
+  if(!scanStream || state.overlay !== "scan") return;
+  const v = $("#scanvideo");
+  if(v && v.readyState >= 2 && v.videoWidth){
+    const vw = v.videoWidth, vh = v.videoHeight;
+    const c = scanCanvas || (scanCanvas = document.createElement("canvas"));
+    const g = c.getContext("2d", { willReadFrequently:true });
+    let w, h;
+    // Alternate two views. Most frames: the centre square (where the on-screen frame is)
+    // at full sensor resolution, so a small tag still gets enough pixels. Every third
+    // frame: the whole picture shrunk down, for a tag held close or off-centre.
+    scanTick.n = (scanTick.n || 0) + 1;
+    if(scanTick.n % 3){
+      // 1:1 when possible — even a slight shrink blurs square edges enough to fail a dense code
+      const side = Math.round(Math.min(vw, vh) * 0.72);
+      w = h = Math.min(side, 1100);
+      c.width = w; c.height = h;
+      g.drawImage(v, (vw - side)/2, (vh - side)/2, side, side, 0, 0, w, h);
+    }else{
+      w = Math.min(800, vw); h = Math.round(vh * w / vw);
+      c.width = w; c.height = h;
+      g.drawImage(v, 0, 0, w, h);
+    }
+    // attemptBoth: laser-marked stainless often reads light-on-dark
+    const code = jsQR(g.getImageData(0,0,w,h).data, w, h, { inversionAttempts:"attemptBoth" });
+    if(code && code.data){
+      stopScanner();
+      if(navigator.vibrate) try{ navigator.vibrate(60); }catch(e){}
+      handleTag(code.data);
+      return;
+    }
+  }
+  scanTimer = setTimeout(scanTick, 140);
+}
+
+/* Decode a still photo, trying a few sizes since the code may be small in the frame. */
+async function decodePhoto(file){
+  const url = URL.createObjectURL(file);
+  try{
+    const img = await new Promise((res,rej)=>{
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = () => rej(new Error("Could not read that image."));
+      i.src = url;
+    });
+    for(const max of [1200, 800, 1800]){
+      const s = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const w = Math.round(img.naturalWidth*s), h = Math.round(img.naturalHeight*s);
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      const g = c.getContext("2d", { willReadFrequently:true });
+      g.drawImage(img, 0, 0, w, h);
+      const code = jsQR(g.getImageData(0,0,w,h).data, w, h, { inversionAttempts:"attemptBoth" });
+      if(code && code.data) return code.data;
+    }
+    return null;
+  }finally{ URL.revokeObjectURL(url); }
+}
+
+/* One entry point for every way a tag arrives: camera, photo, typed ID, or a phone-camera link. */
+function handleTag(text){
+  const tag = parseTag(text);
+  const inScanner = state.overlay === "scan";
+  // a wrong code shouldn't throw the crew out of the scanner: say so, then keep looking
+  const retry = msg => {
+    toast(msg);
+    if(inScanner) setTimeout(()=>{ if(state.overlay === "scan" && !scanStream) startScanner(); }, 1400);
+    else { state.overlay = null; render(); }
+  };
+  if(!tag) return retry("That code isn't a splice tag");
+
+  const local = db.records.find(r=>r.id===tag.id);
+  if(!local && tag.bare) return retry(`No record for ${tag.id} on this device — scan the tag's code`);
+
+  state.scanErr = null; state.scanId = "";
+  if(local && isInstalled(local)){
+    state.overlay = local.id; render();
+    toast(`${local.id} is already installed`);
+    return;
+  }
+  openComplete(local || tag, true);   // no local record: the details came in the code itself
+}
+
+/* ============ export ============ */
+
+/* Minimal ZIP writer (store, no compression) — enough for KMZ. */
+function crc32(buf){
+  let table = crc32.t;
+  if(!table){
+    table = crc32.t = new Uint32Array(256);
+    for(let n=0;n<256;n++){
+      let c = n;
+      for(let k=0;k<8;k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      table[n] = c >>> 0;
+    }
+  }
+  let crc = 0xFFFFFFFF;
+  for(let i=0;i<buf.length;i++) crc = (crc >>> 8) ^ table[(crc ^ buf[i]) & 0xFF];
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+function makeZip(files, mime){
+  const enc = new TextEncoder();
+  const parts = [], central = [];
+  let offset = 0;
+  files.forEach(f => {
+    const name = enc.encode(f.name);
+    const crc = crc32(f.data), size = f.data.length;
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true);
+    lh.setUint16(6, 0, true); lh.setUint16(8, 0, true);
+    lh.setUint16(10, 0, true); lh.setUint16(12, 0, true);
+    lh.setUint32(14, crc, true); lh.setUint32(18, size, true); lh.setUint32(22, size, true);
+    lh.setUint16(26, name.length, true); lh.setUint16(28, 0, true);
+    parts.push(new Uint8Array(lh.buffer), name, f.data);
+
+    const cd = new DataView(new ArrayBuffer(46));
+    cd.setUint32(0, 0x02014b50, true); cd.setUint16(4, 20, true); cd.setUint16(6, 20, true);
+    cd.setUint16(8, 0, true); cd.setUint16(10, 0, true);
+    cd.setUint16(12, 0, true); cd.setUint16(14, 0, true);
+    cd.setUint32(16, crc, true); cd.setUint32(20, size, true); cd.setUint32(24, size, true);
+    cd.setUint16(28, name.length, true); cd.setUint16(30, 0, true); cd.setUint16(32, 0, true);
+    cd.setUint16(34, 0, true); cd.setUint16(36, 0, true); cd.setUint32(38, 0, true);
+    cd.setUint32(42, offset, true);
+    central.push(new Uint8Array(cd.buffer), name);
+    offset += 30 + name.length + size;
+  });
+  let cdSize = 0; central.forEach(c => cdSize += c.length);
+  const eo = new DataView(new ArrayBuffer(22));
+  eo.setUint32(0, 0x06054b50, true);
+  eo.setUint16(4, 0, true); eo.setUint16(6, 0, true);
+  eo.setUint16(8, files.length, true); eo.setUint16(10, files.length, true);
+  eo.setUint32(12, cdSize, true); eo.setUint32(16, offset, true); eo.setUint16(20, 0, true);
+  return new Blob(parts.concat(central, [new Uint8Array(eo.buffer)]), {type:mime});
+}
+
+function dataUriToBytes(uri){
+  const bin = atob(String(uri).split(",")[1] || "");
+  const out = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+const xml = s => String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&apos;"}[c]));
+const cdata = s => String(s==null?"":s).replace(/]]>/g, "]]&gt;");
+
+function posLine(r){
+  return r.pos.source==="manual"
+    ? `${r.pos.lat.toFixed(6)}, ${r.pos.lon.toFixed(6)} (entered by hand)`
+    : `${r.pos.lat.toFixed(6)}, ${r.pos.lon.toFixed(6)} (±${Math.round(r.pos.acc)} ft, ${r.pos.n} readings averaged)`;
+}
+
+/* KML. withPhotos=true writes relative paths that only resolve inside a KMZ. */
+function buildKml(withPhotos){
+  const job = db.settings.job || "Splice log";
+  const marks = db.records.filter(isInstalled).map(r => {
+    const shots = (r.photos || []).filter(Boolean);
+    const imgs = withPhotos
+      ? shots.map((p,i)=>`<img src="files/${r.id}-${i+1}.jpg" width="380"/><br/>`).join("")
+      : "";
+    const desc =
+      `<b>Type:</b> ${xml(r.type)}<br/>` +
+      `<b>Pipe size:</b> ${xml(r.size)}<br/>` +
+      `<b>Material:</b> ${xml(r.material || "—")}<br/>` +
+      `<b>Reel:</b> ${xml(r.reel || "—")}<br/>` +
+      `<b>Swage distance:</b> ${r.swage ? xml(r.swage) + " in" : "—"}<br/>` +
+      (r.type === "Flange end"
+        ? `<b>Flange insert depth:</b> ${r.insert ? xml(r.insert) + " in" : "—"}<br/>` : "") +
+      (r.fitId || r.fitSize || r.fitClass || r.fitBore
+        ? `<b>${r.type === "Flange end" ? "Flange" : "Coupling"}:</b> ` +
+          [r.fitId && "No. " + xml(r.fitId), xml(r.fitSize), xml(r.fitClass),
+           r.fitBore && "ID " + xml(r.fitBore) + " in"].filter(Boolean).join(" · ") + `<br/>` : "") +
+      (r.prepAt ? `<b>Prepared:</b> ${xml(fmtDate(r.prepAt))}${r.prepBy ? " · " + xml(r.prepBy) : ""}<br/>` : "") +
+      `<b>Installed:</b> ${xml(fmtDate(r.at))}<br/>` +
+      `<b>Crew:</b> ${xml(r.crew)}${r.tech ? " · " + xml(r.tech) : ""}<br/>` +
+      `<b>Position:</b> ${xml(posLine(r))}<br/>` +
+      (r.shopNotes ? `<b>Shop notes:</b> ${xml(r.shopNotes)}<br/>` : "") +
+      (r.notes ? `<b>Field notes:</b> ${xml(r.notes)}<br/>` : "") +
+      (shots.length ? `<br/>${imgs}` : "");
+    return `  <Placemark>
+    <name>${xml(r.id)}</name>
+    <styleUrl>#${r.type === "Flange end" ? "flange" : "splice"}</styleUrl>
+    <TimeStamp><when>${xml(r.at)}</when></TimeStamp>
+    <description><![CDATA[${cdata(desc)}]]></description>
+    <Point><coordinates>${r.pos.lon.toFixed(7)},${r.pos.lat.toFixed(7)},0</coordinates></Point>
+  </Placemark>`;
+  }).join("\n");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+  <name>${xml(job)}</name>
+  <description>Exported ${xml(new Date().toLocaleString())} · WGS84 decimal degrees</description>
+  <Style id="splice"><IconStyle><color>ff5ecc43</color><scale>1.1</scale></IconStyle></Style>
+  <Style id="flange"><IconStyle><color>ff2b9ae0</color><scale>1.1</scale></IconStyle></Style>
+${marks}
+</Document>
+</kml>`;
+}
+
+function buildCsv(){
+  const head = "record_id,job,status,crew,technician,fitting_type,pipe_size,material,reel,swage_distance_in,flange_insert_depth_in,fitting_part_no,fitting_size,pressure_class,fitting_id_in,prepared_utc,prepared_by,installed_utc,latitude,longitude,position_source,accuracy_ft,readings,photo_count,datum,shop_notes,field_notes";
+  const q = s => `"${String(s==null?"":s).replace(/"/g,'""')}"`;
+  const rows = db.records.map(r => {
+    const p = r.pos;
+    return [
+      r.id, jobOf(r), p ? "installed" : "prepared",
+      p ? r.crew : "", p ? r.tech : "",
+      r.type, r.size, r.material, r.reel,
+      r.swage, r.type==="Flange end" ? r.insert : "",
+      r.fitId || "", r.fitSize || "", r.fitClass || "", r.fitBore || "",
+      r.prepAt || "", r.prepBy || "",
+      p ? r.at : "",
+      p ? p.lat.toFixed(7) : "", p ? p.lon.toFixed(7) : "",
+      p ? (p.source === "manual" ? "manual" : "device_gps") : "",
+      p && p.source !== "manual" ? Math.round(p.acc) : "",
+      p ? p.n : "", (r.photos||[]).length, p ? "WGS84" : "",
+      r.shopNotes || "", r.notes || ""
+    ].map(q).join(",");
+  });
+  return [head].concat(rows).join("\n");
+}
+
+/* Hand the file to the OS: share sheet on mobile, download everywhere else. */
+async function deliver(blob, filename){
+  try{
+    const file = new File([blob], filename, {type:blob.type});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:filename});
+      return;
+    }
+  }catch(err){
+    if(err && err.name === "AbortError") return;   // user dismissed the share sheet
+  }
+  try{
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 1500);
+  }catch(err){ toast("Could not save the file on this browser"); }
+}
+
+function stamp(){
+  const d = new Date();
+  const p = n => String(n).padStart(2,"0");
+  return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
+}
+function baseName(){ return (db.settings.job || "splice-log").replace(/[^A-Za-z0-9._-]/g,"_"); }
+
+async function exportKmz(){
+  const enc = new TextEncoder();
+  const files = [{name:"doc.kml", data:enc.encode(buildKml(true))}];
+  db.records.filter(isInstalled).forEach(r => {
+    (r.photos || []).filter(Boolean).forEach((p,i) => {
+      try{ files.push({name:`files/${r.id}-${i+1}.jpg`, data:dataUriToBytes(p)}); }catch(e){}
+    });
+  });
+  const blob = makeZip(files, "application/vnd.google-earth.kmz");
+  await deliver(blob, `${baseName()}-${stamp()}.kmz`);
+}
+async function exportKml(){
+  await deliver(new Blob([buildKml(false)], {type:"application/vnd.google-earth.kml+xml"}),
+                `${baseName()}-${stamp()}.kml`);
+}
+async function exportCsv(){
+  await deliver(new Blob(["﻿"+buildCsv()], {type:"text/csv"}), `${baseName()}-${stamp()}.csv`);
+}
+async function exportBackup(){
+  await deliver(new Blob([JSON.stringify(db)], {type:"application/json"}),
+                `${baseName()}-backup-${stamp()}.json`);
+}
+
+/* ============ confirm dialog (window.confirm is blocked in sandboxed frames) ============ */
+function ask(msg, yesLabel, onYes){
+  state.ask = {msg, yesLabel, onYes};
+  render();
+}
+function viewAsk(){
+  const a = state.ask;
+  return `<div class="askwrap">
+    <div class="askbox" role="dialog" aria-modal="true">
+      <p>${esc(a.msg)}</p>
+      <div class="row">
+        <button class="btn" data-act="askno">Cancel</button>
+        <button class="btn destruct" data-act="askyes">${esc(a.yesLabel)}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ============ render ============ */
+function render(){
+  renderStatuses(); renderTabs();
+  $("#main").innerHTML = state.tab==="log" ? viewLog()
+    : state.tab==="tags" ? viewTags()
+    : state.tab==="export" ? viewExport()
+    : viewSetup();
+
+  // re-rendering replaces the <video>, so the camera must never outlive the scanner screen
+  if(state.overlay !== "scan") stopScanner();
+
+  const root = $("#overlay-root");
+  root.innerHTML = state.overlay==="new" ? viewNew()
+    : state.overlay==="prep"  ? viewPrep()
+    : state.overlay==="csv"   ? viewCsv()
+    : state.overlay==="print" ? viewPrint()
+    : state.overlay==="scan"  ? viewScan()
+    : state.overlay ? viewDetail() : "";
+  $("#ask-root").innerHTML = state.ask ? viewAsk() : "";
+  document.body.style.overflow = (state.overlay || state.ask) ? "hidden" : "";
+
+  if(state.tab==="log" && db.records.some(isInstalled)) requestAnimationFrame(drawPlot);
+
+  // something re-rendered mid-scan (a theme change, say): hand the live camera to the new <video>
+  if(state.overlay === "scan" && scanStream){
+    const v = $("#scanvideo");
+    if(v){ v.srcObject = scanStream; const p = v.play(); if(p && p.catch) p.catch(()=>{}); }
+    const m = $("#scanmsg"); if(m) m.textContent = "Point the camera at the code on the tag.";
+  }
+}
+
+function openScanner(){
+  state.scanErr = null;
+  state.overlay = "scan";
+  render();
+  startScanner();
+}
+
+
+/* ============ events ============ */
+document.addEventListener("click", async e => {
+  const t = e.target.closest("[data-tab],[data-act],[data-open],[data-drop],[data-del],[data-copy],[data-copy-csv],[data-applied]");
+  if(!t) return;
+
+  if(t.dataset.tab){ state.tab = t.dataset.tab; render(); return; }
+  if(t.dataset.open){ state.overlay = t.dataset.open; render(); return; }
+
+  if(t.dataset.copy){
+    try{ await navigator.clipboard.writeText(t.dataset.copy); toast("Copied"); }
+    catch(err){ toast("Copy blocked — select it by hand"); }
+    return;
+  }
+  if(t.dataset.copyCsv){
+    const box = $("#csvbox");
+    try{ await navigator.clipboard.writeText(box.value); toast("Copied"); }
+    catch(err){ box.select(); toast("Select and copy"); }
+    return;
+  }
+  if(t.dataset.applied){
+    const r = db.records.find(x=>x.id===t.dataset.applied);
+    if(r){ r.tagApplied = new Date().toISOString(); save(); render(); toast("Tag applied"); }
+    return;
+  }
+  if(t.dataset.del){
+    const id = t.dataset.del;
+    const r = db.records.find(x=>x.id===id);
+    if(r) ask(`Delete ${r.id}? This cannot be undone.`, "Delete", () => {
+      db.records = db.records.filter(x=>x.id!==id);
+      state.overlay = null; save(); render(); toast("Record deleted");
+    });
+    return;
+  }
+  if(t.dataset.drop != null){ state.draft.photos.splice(+t.dataset.drop, 1); render(); return; }
+
+  const act = t.dataset.act;
+
+  if(act==="new"){ openNew(); return; }
+
+  /* ---- scanning ---- */
+  if(act==="scan"){ openScanner(); return; }
+  if(act==="scanclose"){ stopScanner(); state.overlay = null; state.scanErr = null; render(); return; }
+  if(act==="scanphoto"){
+    const inp = $("#scanphotoinput");
+    inp.value = "";
+    inp.onchange = async () => {
+      const f = inp.files && inp.files[0]; if(!f) return;
+      if(typeof jsQR !== "function"){ toast("Scanner didn't load — reload with signal"); return; }
+      stopScanner();
+      const m = $("#scanmsg"); if(m) m.textContent = "Reading photo…";
+      let text = null;
+      try{ text = await decodePhoto(f); }catch(err){ toast(err.message); }
+      if(text) handleTag(text);
+      else{
+        toast("No code found in that photo — get closer and fill the frame");
+        if(state.overlay === "scan") startScanner();
+      }
+    };
+    inp.click();
+    return;
+  }
+  if(act==="scanid"){
+    const id = (state.scanId||"").trim().toUpperCase();
+    if(!id){ toast("Type a tag ID first"); return; }
+    if(!db.records.some(r=>r.id.toUpperCase()===id)){
+      toast(`No record for ${id} on this device`); return;
+    }
+    stopScanner();
+    handleTag(db.records.find(r=>r.id.toUpperCase()===id).id);
+    return;
+  }
+
+  /* ---- shop prep ---- */
+  if(act==="prep"){ openPrep(); return; }
+  if(act==="prepsave"){
+    const d = state.draft;
+    if(!db.settings.job){ toast("Set a job number in Setup first"); return; }
+    const qty = Math.max(1, Math.min(50, parseInt(d.qty,10) || 1));
+    const now = new Date().toISOString();
+    let first = null;
+    for(let i=0;i<qty;i++){
+      const rec = {
+        id: nextId(), job: db.settings.job, prepAt: now, prepBy: db.settings.tech, at: now, pos:null,
+        type:d.type, size:d.size, material:d.material, reel:d.reel, swage:d.swage,
+        insert: d.type==="Flange end" ? d.insert : "",
+        fitId:d.fitId||"", fitSize:d.fitSize||"", fitClass:d.fitClass||"", fitBore:d.fitBore||"",
+        shopNotes: d.shopNotes || "", notes:"", photos:[],
+        crew: db.settings.crew, tech: db.settings.tech,
+        sync:"pending", tagPrinted:null, tagApplied:null
+      };
+      db.records.push(rec);
+      if(!first) first = rec.id;
+    }
+    save();
+    state.draft = null; state.overlay = null; state.tab = "tags";
+    render();
+    toast(qty === 1 ? `${first} ready to print` : `${qty} tags ready to print`);
+    return;
+  }
+  if(act==="specedit"){ state.draft.specOpen = true; render(); return; }
+  if(act==="install"){
+    const r = db.records.find(x=>x.id===t.dataset.id);
+    if(r) openComplete(r, false);
+    return;
+  }
+
+  /* ---- printing ---- */
+  if(act==="printsheet"){
+    const ids = [...document.querySelectorAll(".tagpick:checked")].map(b=>b.value);
+    if(!ids.length){ toast("Pick at least one tag"); return; }
+    state.csvIds = ids; state.overlay = "print"; render();
+    return;
+  }
+  if(act==="printone"){ state.csvIds = [t.dataset.id]; state.overlay = "print"; render(); return; }
+  if(act==="doprint"){
+    try{ window.print(); }catch(err){ toast("Printing is blocked here — open the site in Safari or Chrome"); }
+    return;
+  }
+
+  if(act==="addshot"){
+    const inp = $("#shotinput");
+    inp.value = "";
+    inp.onchange = async () => {
+      const files = Array.from(inp.files || []);
+      if(!files.length) return;
+      let added = 0, hitCap = false;
+      for(const f of files){
+        if(state.draft.photos.length >= MAX_PHOTOS){ hitCap = true; break; }
+        try{ state.draft.photos.push(await shrink(f)); added++; }
+        catch(err){ toast(err.message); }
+      }
+      render();
+      if(hitCap) toast(`Limit is ${MAX_PHOTOS} photos per record`);
+      else if(added > 1) toast(`${added} photos added`);
+    };
+    inp.click();
+    return;
+  }
+  if(act==="cancel"){
+    const drop = () => { state.draft=null; state.overlay=null; state.manualOpen=false; render(); };
+    if(!state.draft || !state.draft.pos) drop();
+    else ask("Discard this splice? The photos and details go with it.", "Discard", drop);
+    return;
+  }
+  if(act==="close"){ state.overlay = null; render(); return; }
+  if(act==="gosetup"){ state.tab = "setup"; render(); return; }
+
+  if(act==="kmz" || act==="kml" || act==="csv" || act==="backup"){
+    t.disabled = true;
+    const label = t.innerHTML;          // buttons carry an inline SVG, so keep the markup
+    t.textContent = "Working…";
+    try{
+      if(act==="kmz") await exportKmz();
+      else if(act==="kml") await exportKml();
+      else if(act==="csv") await exportCsv();
+      else await exportBackup();
+    }catch(err){
+      toast("Export failed — " + (err && err.message ? err.message : "unknown error"));
+    }
+    t.disabled = false; t.innerHTML = label;
+    return;
+  }
+
+  if(act==="tagcsvfile"){
+    const box = $("#csvbox");
+    if(box) await deliver(new Blob(["﻿"+box.value], {type:"text/csv"}), `${baseName()}-tags-${stamp()}.csv`);
+    return;
+  }
+
+  if(act==="restore"){
+    const inp = $("#restoreinput");
+    inp.value = "";
+    inp.onchange = () => {
+      const f = inp.files && inp.files[0]; if(!f) return;
+      const fr = new FileReader();
+      fr.onerror = () => toast("Could not read that file");
+      fr.onload = () => {
+        let parsed;
+        try{ parsed = JSON.parse(fr.result); }
+        catch(e){ toast("That is not a valid backup file"); return; }
+        if(!parsed || !Array.isArray(parsed.records)){ toast("That file has no records in it"); return; }
+        ask(`Replace everything on this device with ${parsed.records.length} record${parsed.records.length===1?"":"s"} from the backup?`,
+            "Replace", () => {
+          db = Object.assign({}, DEFAULTS, parsed);
+          (db.records||[]).forEach(r => { r.photos = (r.photos||[]).filter(Boolean); });
+          save(); render(); toast("Backup restored");
+        });
+      };
+      fr.readAsText(f);
+    };
+    inp.click();
+    return;
+  }
+  if(act==="askno"){ state.ask = null; render(); return; }
+  if(act==="askyes"){
+    const fn = state.ask && state.ask.onYes;
+    state.ask = null;
+    if(fn) fn(); else render();
+    return;
+  }
+  if(act==="wipe"){
+    ask("Erase every record on this device? This cannot be undone.", "Erase all", () => {
+      db = JSON.parse(JSON.stringify(DEFAULTS)); save(); render(); toast("All records erased");
+    });
+    return;
+  }
+  if(act==="sync"){
+    const q = db.records.filter(r=>r.sync==="pending");
+    if(!navigator.onLine){ toast("No connection — still queued"); return; }
+    toast(`Uploading ${q.length}…`);
+    setTimeout(()=>{ q.forEach(r=>r.sync="synced"); save(); render(); toast("Upload complete"); }, 1100);
+    return;
+  }
+
+  if(act==="fix" || act==="refix"){
+    const box = $("#fixstatus");
+    const btn = t; btn.disabled = true;
+    if(box) box.innerHTML = `<div class="bar"><i style="width:6%"></i></div>
+      <p style="margin:0 0 11px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--muted)">Acquiring…</p>`;
+    try{
+      const fix = await captureFix((n,best)=>{
+        const b = box && box.querySelector("i");
+        if(b) b.style.width = Math.round(100*n/AVG_TARGET)+"%";
+        const p = box && box.querySelector("p");
+        if(p) p.textContent = `${n} of ${AVG_TARGET} readings · best ±${Math.round(best)} ft`;
+      });
+      state.draft.pos = fix;
+      state.draft.dup = nearestDup(fix);
+      render();
+    }catch(err){
+      btn.disabled = false;
+      if(box) box.innerHTML = `<div class="notice bad" style="margin-bottom:11px">${ICON.warn}<div>${esc(err.message)}</div></div>`;
+    }
+    return;
+  }
+
+  if(act==="manual"){ state.manualOpen = true; render(); return; }
+  if(act==="manualcancel"){
+    state.manualOpen = false; state.manualLat = ""; state.manualLon = "";
+    render(); return;
+  }
+  if(act==="usemanual"){
+    let latRaw = (state.manualLat||"").trim();
+    let lonRaw = (state.manualLon||"").trim();
+    if(latRaw.indexOf(",") > -1){                 // both pasted into the first box
+      const parts = latRaw.split(",");
+      latRaw = parts[0].trim();
+      if(!lonRaw) lonRaw = (parts[1]||"").trim();
+    }
+    const lat = parseFloat(latRaw), lon = parseFloat(lonRaw);
+    if(!isFinite(lat) || Math.abs(lat) > 90){ toast("Latitude must be between -90 and 90"); return; }
+    if(!isFinite(lon) || Math.abs(lon) > 180){ toast("Longitude must be between -180 and 180"); return; }
+    state.draft.pos = {lat, lon, acc:0, n:0, at:new Date().toISOString(), source:"manual"};
+    state.draft.dup = nearestDup(state.draft.pos);
+    state.manualOpen = false; state.manualLat = ""; state.manualLon = "";
+    render();
+    return;
+  }
+
+  if(act==="saverec"){
+    const d = state.draft;
+    if(!d.pos){ toast("Capture a position first"); return; }
+    const now = new Date().toISOString();
+    const fields = {
+      type:d.type, size:d.size, material:d.material, reel:d.reel, swage:d.swage,
+      insert: d.type==="Flange end" ? d.insert : "",
+      fitId:d.fitId||"", fitSize:d.fitSize||"", fitClass:d.fitClass||"", fitBore:d.fitBore||"",
+      notes:d.notes, photos:d.photos, pos:d.pos
+    };
+    let rec;
+    if(d.fromTag){
+      // keep the tag's ID and shop history; this device may never have seen it before
+      const idx = db.records.findIndex(x=>x.id===d.id);
+      const prev = idx > -1 ? db.records[idx] : {};
+      rec = Object.assign({}, prev, fields, {
+        id: d.id,
+        job: prev.job || d.job,
+        prepAt: prev.prepAt || d.prepAt || null,
+        prepBy: prev.prepBy || d.prepBy || "",
+        shopNotes: prev.shopNotes || d.shopNotes || "",
+        at: now, crew: db.settings.crew, tech: db.settings.tech, sync:"pending",
+        // a scan proves the tag exists and is on the joint; installing by hand proves neither
+        tagPrinted: prev.tagPrinted || (d.viaScan ? now : null),
+        tagApplied: d.viaScan ? now : (prev.tagApplied || null)
+      });
+      if(idx > -1) db.records[idx] = rec; else db.records.push(rec);
+      bumpSeq(rec.id);
+    }else{
+      rec = Object.assign(fields, {
+        id: nextId(), job: db.settings.job, at: now,
+        crew: db.settings.crew, tech: db.settings.tech,
+        sync:"pending", tagPrinted:null, tagApplied:null
+      });
+      db.records.push(rec);
+    }
+    save();
+    state.draft = null; state.overlay = null;
+    render(); toast(rec.id + (d.fromTag ? " installed" : " saved"));
+    return;
+  }
+
+  if(act==="selall"){
+    const boxes = [...document.querySelectorAll(".tagpick")];
+    const allOn = boxes.every(b=>b.checked);
+    boxes.forEach(b=>b.checked = !allOn);
+    return;
+  }
+  if(act==="makecsv"){
+    const ids = [...document.querySelectorAll(".tagpick:checked")].map(b=>b.value);
+    if(!ids.length){ toast("Pick at least one record"); return; }
+    state.csvIds = ids; state.overlay = "csv"; render();
+    return;
+  }
+  if(act==="markprinted"){
+    const now = new Date().toISOString();
+    db.records.filter(r=>(state.csvIds||[]).includes(r.id)).forEach(r=>r.tagPrinted = now);
+    save(); state.overlay = null; state.csvIds = null; render(); toast("Marked printed");
+    return;
+  }
+});
+
+function nearestDup(pos){
+  const self = state.draft && state.draft.id;
+  let best = null;
+  db.records.forEach(r=>{
+    if(!r.pos || r.id === self) return;
+    const ft = feetBetween(pos, r.pos);
+    if(ft <= DUP_FT && (!best || ft < best.ft)) best = {id:r.id, ft};
+  });
+  return best;
+}
+
+document.addEventListener("input", e => {
+  const t = e.target;
+  if(t.dataset.d && state.draft){ state.draft[t.dataset.d] = t.value; return; }
+  if(t.dataset.m){
+    const m = t.dataset.m;
+    if(m === "lat") state.manualLat = t.value;
+    else if(m === "lon") state.manualLon = t.value;
+    else if(m === "id") state.scanId = t.value;
+    return;
+  }
+  if(t.dataset.set){
+    const k = t.dataset.set, v = t.value.trim();
+    // job and crew become part of IDs, file names, and QR codes: keep them to safe characters
+    db.settings[k] = k === "crew" ? (v.toUpperCase().replace(/[^A-Z0-9]/g,"") || "A")
+                   : k === "job"  ? v.replace(/[^A-Za-z0-9._-]+/g,"-")
+                   : v;
+    save(); renderStatuses();
+  }
+});
+document.addEventListener("change", e => {
+  if(e.target.dataset.set){ render(); return; }
+  // insert depth only applies to a flange end, so the form changes shape with the type
+  if(e.target.dataset.d === "type"){ render(); }
+});
+
+window.addEventListener("online", renderStatuses);
+window.addEventListener("offline", renderStatuses);
+window.addEventListener("resize", () => { if(state.tab==="log") drawPlot(); });
+if(window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => setTimeout(render, 30));
+
+/* A phone's own camera opens the tag link; the payload sits in the #fragment,
+   which never leaves the phone. Clear it so a reload doesn't re-open the tag. */
+function checkLinkedTag(){
+  if(!/(?:^#|[#&])t=/.test(location.hash)) return;
+  const text = location.hash;
+  try{ history.replaceState(null, "", location.pathname + location.search); }catch(e){}
+  handleTag(text);
+}
+window.addEventListener("hashchange", checkLinkedTag);
+// release the camera when the app is backgrounded
+document.addEventListener("visibilitychange", () => {
+  if(document.hidden && scanStream){ stopScanner(); }
+  else if(!document.hidden && state.overlay === "scan" && !scanStream && !state.scanErr){ startScanner(); }
+});
+
+/* ============ boot ============ */
+render();
+checkLinkedTag();
+startWatch();
 </script>
-</body>
-</html>
