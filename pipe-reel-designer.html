@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipe Reel Designer</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --panel:#ffffff; --line:#d3d7de; --ink:#14181f; --muted:#5d6673;
+    --accent:#1f4e9c; --accent2:#e8b400; --warn:#b3261e; --ok:#1c7a3e;
+    --paper:#ffffff; --drawink:#14181f;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#15181d; --panel:#1d2128; --line:#333a45; --ink:#e7eaef; --muted:#9aa4b2;
+           --accent:#6ea3ff; --ok:#63c98c; --warn:#ff8a80; --paper:#ffffff; --drawink:#14181f; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:14px/1.45 "Segoe UI",system-ui,-apple-system,sans-serif}
+  header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+         padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);
+         position:sticky;top:0;z-index:5}
+  header h1{font-size:16px;margin:0;font-weight:650}
+  header .sub{color:var(--muted);font-size:12px}
+  .spacer{flex:1}
+  button{font:inherit;font-size:13px;padding:6px 12px;border-radius:6px;cursor:pointer;
+         border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .wrap{display:grid;grid-template-columns:390px 1fr;gap:14px;padding:14px;align-items:start}
+  @media (max-width:1180px){ .wrap{grid-template-columns:1fr} }
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+        padding:12px 14px;margin-bottom:12px}
+  .card > h2{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);
+             margin:0 0 10px;font-weight:650;display:flex;align-items:center;gap:8px}
+  .card > h2 .tag{font-size:10px;text-transform:none;letter-spacing:0;color:var(--accent);
+                  border:1px solid var(--line);border-radius:20px;padding:1px 7px;font-weight:600}
+  .row{display:grid;grid-template-columns:1fr 108px;gap:8px;align-items:center;margin-bottom:7px}
+  .row label{font-size:13px}
+  .row label small{display:block;color:var(--muted);font-size:11px;line-height:1.3}
+  .row.full{grid-template-columns:1fr}
+  .row.wide{grid-template-columns:1fr 168px}
+  .tb2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+  input[type=text],input[type=number],select{
+      width:100%;font:inherit;font-size:13px;padding:5px 7px;border-radius:5px;
+      border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+  input[type=number]{text-align:right;font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;margin:0}
+  .slrow{display:grid;grid-template-columns:1fr 92px;gap:8px;align-items:center;margin-bottom:2px}
+  .slrow + .slcap{margin:0 0 9px;font-size:11px;color:var(--muted)}
+  .derived{display:grid;grid-template-columns:1fr auto;gap:3px 10px;font-size:12.5px;margin:0}
+  .derived dt{color:var(--muted)}
+  .derived dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+  .chk{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;
+       padding:4px 8px;border-radius:5px;margin-bottom:4px;border-left:3px solid var(--line);
+       background:var(--bg)}
+  .chk.pass{border-left-color:var(--ok)}
+  .chk.fail{border-left-color:var(--warn);color:var(--warn);font-weight:600}
+  .chk b{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .chk small{display:block;font-weight:400;font-size:10.5px;opacity:.75}
+  table{border-collapse:collapse;width:100%;font-size:12px}
+  th,td{padding:3px 6px;border-bottom:1px solid var(--line);text-align:right;
+        font-variant-numeric:tabular-nums;white-space:nowrap}
+  th{color:var(--muted);font-weight:600;text-align:right;font-size:11px;
+     text-transform:uppercase;letter-spacing:.04em}
+  th:first-child,td:first-child{text-align:left}
+  tbody tr{cursor:pointer}
+  tbody tr:hover{background:var(--bg)}
+  tbody tr.cur{background:color-mix(in srgb,var(--accent) 14%,transparent);font-weight:600}
+  tbody tr.bad td{color:var(--muted)}
+  .scroll{max-height:330px;overflow:auto}
+  .sheetwrap{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px}
+  .sheetwrap svg{width:100%;height:auto;display:block;background:var(--paper);
+                 border:1px solid var(--line);border-radius:4px}
+  .note{font-size:11.5px;color:var(--muted);margin:8px 2px 0;line-height:1.5}
+  .modalback{position:fixed;inset:0;background:rgba(10,12,16,.55);z-index:50;
+             display:flex;align-items:center;justify-content:center;padding:24px}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+         padding:14px;width:min(760px,100%);display:flex;flex-direction:column;gap:10px}
+  .modal header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .modal textarea{width:100%;height:46vh;font:12px/1.45 ui-monospace,Consolas,monospace;
+                  border:1px solid var(--line);border-radius:6px;padding:8px;
+                  background:var(--bg);color:var(--ink);resize:vertical}
+  .modal p{margin:0;font-size:12px;color:var(--muted)}
+  @media print{
+    header,.panel-col,.note,.card.noprint{display:none!important}
+    .wrap{display:block;padding:0}
+    .sheetwrap{border:0;padding:0;border-radius:0}
+    .sheetwrap svg{border:0;width:100%}
+    @page{size:landscape;margin:8mm}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Pipe Reel Designer</h1>
+  <span class="sub">Specialty RTP &mdash; parametric from <em>Pricing Tool v8 &rsaquo; Reel Plan</em></span>
+  <span class="spacer"></span>
+  <button id="btnSvg">Download SVG</button>
+  <button id="btnDxf">Download DXF</button>
+  <button id="btnBom">Copy BOM</button>
+  <button id="btnPrint" class="primary">Print / PDF</button>
+  <span class="sub" id="shareNote" hidden>Shared link &mdash; exports copy to the clipboard
+    instead of saving.</span>
+</header>
+
+<div class="wrap">
+
+<div class="panel-col">
+
+  <div class="card">
+    <h2>Reel <span class="tag" id="tagSrc">catalogue</span></h2>
+    <div class="row full"><select id="preset"></select></div>
+    <div class="row full" style="margin-top:8px">
+      <div style="font:600 20px/1.2 ui-monospace,Consolas,monospace;letter-spacing:.01em"
+           id="partno">SP192-HD160-T92</div>
+    </div>
+    <div class="note" style="margin-top:2px" id="presetNote"></div>
+    <div class="row wide" style="margin-top:10px"><label>Sheet views</label>
+      <select id="layout">
+        <option value="iso">Front + side + isometric</option>
+        <option value="ortho">Front + side only</option>
+        <option value="isoonly">Isometric only</option>
+      </select></div>
+    <div class="row wide"><label>Isometric style</label>
+      <select id="isoStyle">
+        <option value="solid">Solid (hidden lines removed)</option>
+        <option value="wire">Wireframe (see-through)</option>
+      </select></div>
+  </div>
+
+  <div class="card">
+    <h2>Principal dimensions <span class="tag">inches</span></h2>
+
+    <div class="slrow"><input type="range" id="spR" min="24" max="240" step="1">
+                       <input type="number" id="sp" step="0.5"></div>
+    <p class="slcap">Spool OD (flange outside diameter)</p>
+
+    <div class="slrow"><input type="range" id="hdR" min="18" max="230" step="1">
+                       <input type="number" id="hd" step="0.5"></div>
+    <p class="slcap">Hub OD — the traverse pitch circle</p>
+
+    <div class="slrow"><input type="range" id="tvR" min="12" max="140" step="0.5">
+                       <input type="number" id="tv" step="0.5"></div>
+    <p class="slcap">Traverse (clear width between flanges)</p>
+
+    <dl class="derived">
+      <dt>Wind depth &mdash; (SP &minus; HD) / 2</dt><dd id="dDepth">&mdash;</dd>
+      <dt>Overall width</dt><dd id="dWidth">&mdash;</dd>
+      <dt>Drum surface area</dt><dd id="dArea">&mdash;</dd>
+      <dt>Traverses <small>one per spoke</small></dt><dd id="dNbat">&mdash;</dd>
+      <dt>Traverse pitch <small>arc, on the hub circle</small></dt><dd id="dPitch">&mdash;</dd>
+      <dt>Clear gap between traverses</dt><dd id="dGap">&mdash;</dd>
+      <dt>Drum coverage</dt><dd id="dCover">&mdash;</dd>
+    </dl>
+  </div>
+
+  <div class="card">
+    <h2>Pipe &amp; capacity <span class="tag">Reel Plan model</span></h2>
+    <div class="row"><label>Finished pipe OD <small>Reel Plan!B4</small></label>
+                     <input type="number" id="pod" step="0.01"></div>
+    <div class="row"><label>Pipe weight <small>lb/ft &mdash; Reel Plan!B6</small></label>
+                     <input type="number" id="plf" step="0.0001"></div>
+    <div class="row"><label>Project length <small>ft &mdash; Reel Plan!B5</small></label>
+                     <input type="number" id="plen" step="100"></div>
+    <div class="row"><label>Min bend ratio <small>hub OD / pipe OD</small></label>
+                     <input type="number" id="bmin" step="1"></div>
+    <div class="row"><label>Max reel weight <small>lbs, 0 = no limit</small></label>
+                     <input type="number" id="wmax" step="500"></div>
+
+    <div id="checks" style="margin-top:10px"></div>
+
+    <dl class="derived" style="margin-top:8px">
+      <dt>Wraps that fit</dt><dd id="dWraps">&mdash;</dd>
+      <dt>Capacity</dt><dd id="dCap">&mdash;</dd>
+      <dt>Braid target / reel <small>&times;1.01</small></dt><dd id="dBraid">&mdash;</dd>
+      <dt>Base tube target / reel <small>&times;1.01 + 10</small></dt><dd id="dBase">&mdash;</dd>
+      <dt>Reels needed</dt><dd id="dReels">&mdash;</dd>
+      <dt>Length on last reel</dt><dd id="dLast">&mdash;</dd>
+    </dl>
+  </div>
+
+  <div class="card">
+    <h2>Load on this reel <span class="tag" id="tagFill"></span></h2>
+    <div class="row"><label>Pipe on reel</label>
+      <select id="fillMode">
+        <option value="full">Full &mdash; wound to capacity</option>
+        <option value="spec">Specified length</option>
+      </select></div>
+    <div class="row" id="rowFill"><label>Length on reel <small>ft</small></label>
+      <input type="number" id="fillLen" step="10"></div>
+    <button id="btnLastReel" style="margin-bottom:8px">Use last-reel length</button>
+    <div id="fillWarn"></div>
+    <dl class="derived">
+      <dt>Pipe on reel</dt><dd id="dOnReel">&mdash;</dd>
+      <dt>Fill</dt><dd id="dPct">&mdash;</dd>
+      <dt>Layers wound</dt><dd id="dLayers">&mdash;</dd>
+      <dt>OD over pipe</dt><dd id="dOdNow">&mdash;</dd>
+      <dt>Radial freeboard to flange</dt><dd id="dFree">&mdash;</dd>
+      <dt>Pipe weight on reel</dt><dd id="dWfull">&mdash;</dd>
+      <dt>Reel tare</dt><dd id="dTare">&mdash;</dd>
+      <dt>Gross weight</dt><dd id="dWgross">&mdash;</dd>
+    </dl>
+  </div>
+
+  <div class="card">
+    <h2>Fabrication detail</h2>
+    <div class="row"><label>Spokes per side <small>one traverse lands on each</small></label>
+      <input type="number" id="nspoke" step="1" min="3"></div>
+    <div class="row"><label>Spoke tube <small>note 2</small></label>
+      <select id="spokeTube"></select></div>
+    <div class="row"><label>Rim ring tube <small>note 6</small></label>
+      <select id="ringTube"></select></div>
+    <div class="row"><label>Hub boss <small>what the spokes land on</small></label>
+      <select id="bossShape">
+        <option value="round">Round</option>
+        <option value="square">Square</option>
+      </select></div>
+    <div class="row"><label>Hub boss size <small>dia, or across flats</small></label>
+      <input type="number" id="spokeid" step="0.25"></div>
+    <div class="row"><label>Pole bore dia <small>the hole through the boss</small></label>
+      <input type="number" id="arbod" step="0.25"></div>
+    <div class="row"><label>Drum construction</label>
+      <select id="drumType">
+        <option value="traverse">Separate traverses</option>
+        <option value="solid">Solid drum</option>
+      </select></div>
+    <div class="row" id="rowDrumT"><label>Drum plate thickness</label>
+      <input type="number" id="tdrum" step="0.0625"></div>
+    <div class="row" id="rowBatMat"><label>Traverse material</label>
+      <select id="batMat">
+        <option value="wood">Timber plank</option>
+        <option value="steel">Steel tube</option>
+      </select></div>
+    <div class="row" id="rowLumber"><label>Plank size <small>nominal</small></label>
+      <select id="batLumber"></select></div>
+    <div class="row" id="rowWoodDens"><label>Timber density <small>lb/ft³</small></label>
+      <input type="number" id="woodDens" step="1"></div>
+    <div class="row" id="rowBatTube"><label>Traverse tube</label><select id="batTube"></select></div>
+  </div>
+
+  <div class="card">
+    <h2>Estimated weight <span class="tag" id="tagW"></span></h2>
+    <table id="bom"><tbody></tbody></table>
+  </div>
+
+  <div class="card">
+    <h2>Title block</h2>
+    <div class="row"><label>Drawn by / date</label>
+      <div class="tb2"><input type="text" id="dwgby"><input type="text" id="dwgdate"></div></div>
+    <div class="row"><label>Checked by / date</label>
+      <div class="tb2"><input type="text" id="chkby"><input type="text" id="chkdate"></div></div>
+    <div class="row"><label>Approved by / date</label>
+      <div class="tb2"><input type="text" id="apvby"><input type="text" id="apvdate"></div></div>
+    <div class="row wide"><label>Material type</label><input type="text" id="matl"></div>
+    <div class="row wide"><label>Coating</label><input type="text" id="coat"></div>
+    <div class="row wide"><label>Drawing no. <small>blank = part no.</small></label><input type="text" id="dwgno"></div>
+    <div class="row"><label>Rev / sheet</label>
+      <div class="tb2"><input type="text" id="rev"><input type="text" id="sheet"></div></div>
+    <div class="row wide"><label>Rev description</label><input type="text" id="revdesc"></div>
+  </div>
+
+  <div class="card noprint">
+    <h2>Reset</h2>
+    <button id="btnResetDims">Reset dimension positions</button>
+    <button id="btnReset">Restore SP192-HD160-T92 defaults</button>
+  </div>
+
+</div><!-- /panel -->
+
+<div>
+  <div class="sheetwrap"><div id="sheetView"></div></div>
+  <p class="note" id="footnote"></p>
+
+  <div class="card noprint" style="margin-top:12px">
+    <h2>Reel Plan catalogue <span class="tag">18 reels</span></h2>
+    <div class="scroll">
+      <table id="cat">
+        <thead><tr><th>Part no.</th><th>SP</th><th>HD</th><th>T</th><th>Bend</th>
+          <th>Wraps</th><th>Cap (ft)</th><th>Reels</th><th>Gross (lb)</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <p class="note">Rows are the catalogue on <b>Reel Plan!A11:D28</b> of
+      <i>Pricing Tool - v8 (Design Optimizer).xlsx</i>. Capacity is recomputed here with the
+      workbook's own wrap model at the pipe OD above. Greyed rows fail the bend-ratio or
+      weight limit. Click any row to load it.</p>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+"use strict";
+
+/* ---------- constants -------------------------------------------------- */
+const DENS = 0.2836;                       // lb/in^3, steel
+const CAT = [                              // Reel Plan!A11:D28
+  ["SP42-HD30-T48",      42,  30,  48   ],
+  ["SP54-HD40-T48",      54,  40,  48   ],
+  ["SP60-HD42-T48",      60,  42,  48   ],
+  ["SP96-HD42-T44.5",    96,  42,  44.5 ],
+  ["SP96-HD42-T48",      96,  42,  48   ],
+  ["SP96-HD42-T56",      96,  42,  56   ],
+  ["SP96-HD60-T48",      96,  60,  48   ],
+  ["SP96-HD68-T56",      96,  68,  56   ],
+  ["SP124-HD72-T80",    124,  72,  80   ],
+  ["SP124-HD72-T88",    124,  72,  88   ],
+  ["SP144-HD72-T88",    144,  72,  88   ],
+  ["SP144-HD100-T80",   144, 100,  80   ],
+  ["SP144-HD100-T92",   144, 100,  92   ],
+  ["SP144-HD108-T88",   144, 108,  88   ],
+  ["SP144-HD116-T88",   144, 116,  88   ],
+  ["SP174-HD144-T92",   174, 144,  92   ],
+  ["SP174-HD148-T80",   174, 148,  80   ],
+  ["SP174-HD148-T92",   174, 148,  92   ]
+];
+const REF = ["SP192-HD160-T92", 192, 160, 92];   // the source assembly drawing
+/* nominal lumber -> dressed size. First number is the radial thickness (the
+   plank lies flat, wide face out), second the width around the circumference. */
+const LUMBER = [
+  ["2 x 4",  1.5, 3.5 ], ["2 x 6",  1.5, 5.5 ], ["2 x 8",  1.5, 7.25],
+  ["2 x 10", 1.5, 9.25], ["2 x 12", 1.5, 11.25],
+  ["3 x 6",  2.5, 5.5 ], ["3 x 8",  2.5, 7.25],
+  ["4 x 6",  3.5, 5.5 ], ["4 x 8",  3.5, 7.25]
+];
+const TUBES = [                                   // b (in), wall (in)
+  [2,0.1875],[2,0.25],[2,0.3125],[2,0.375],
+  [2.5,0.25],[2.5,0.375],[3,0.25],[3,0.3125],[3,0.375],[3,0.5],
+  [4,0.25],[4,0.375],[4,0.5]
+];
+const TODAY = (()=>{ const d = new Date(), p2 = n => String(n).padStart(2,"0");
+  return p2(d.getMonth()+1)+"/"+p2(d.getDate())+"/"+String(d.getFullYear()).slice(-2); })();
+const DEFAULTS = {
+  sp:192, hd:160, tv:92,
+  pod:6.23, plf:4.0939, plen:65600, bmin:20, wmax:0,
+  nspoke:16, spokeTube:"2x0.25", ringTube:"2x0.375", spokeid:8,
+  bossShape:"round", arbod:4,
+  drumType:"traverse", tdrum:0.375, batTube:"2x0.375",
+  batMat:"wood", batLumber:"1.5x5.5", woodDens:35,
+  layout:"iso", isoStyle:"solid",
+  fillMode:"full", fillLen:1000,
+  dwgby:"DW", dwgdate:TODAY, chkby:"", chkdate:"",
+  apvby:"", apvdate:"", matl:"", coat:"", dwgno:"", rev:"-", sheet:"1 OF 1",
+  revdesc:"Initial Release"
+};
+const NUMKEYS = ["sp","hd","tv","pod","plf","plen","bmin","wmax","nspoke",
+  "spokeid","arbod","tdrum","woodDens","fillLen"];
+const TXTKEYS = ["dwgby","dwgdate","chkby","chkdate","apvby","apvdate","matl","coat",
+  "dwgno","rev","sheet","revdesc"];
+const SELKEYS = ["spokeTube","ringTube","batTube","drumType","layout","isoStyle",
+  "batMat","batLumber","fillMode","bossShape"];
+
+/* ---------- small helpers ---------------------------------------------- */
+const $  = id => document.getElementById(id);
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const fmt = n => Number(Number(n).toFixed(3)).toString();
+const com = (n,d=0) => Number(n).toLocaleString("en-US",
+                        {minimumFractionDigits:d,maximumFractionDigits:d});
+const tubeLbFt = (b,t) => (b*b - Math.max(b-2*t,0)**2) * DENS * 12;
+const tubeName = (b,t) => fmt(b)+'" x '+fmt(b)+'" x '+frac(t);
+function frac(t){
+  const sixt = Math.round(t*16);
+  if(Math.abs(t*16-sixt) > 1e-6) return fmt(t)+'"';
+  if(sixt%16===0) return (sixt/16)+'"';
+  let n=sixt, d=16; while(n%2===0){n/=2;d/=2;}
+  const w=Math.floor(n/d), r=n-w*d;
+  return (w? w+"-":"") + r + "/" + d + '"';
+}
+
+/* ---------- the Reel Plan wrap model ------------------------------------
+   Reproduces Reel Plan cols Q..BH (OD after wrap n) and BJ..DA (cum length):
+     Q  = ROUNDDOWN(hubOD + 2*pipeOD, 0);  next = ROUNDDOWN(prev + 2*pipeOD, 0)
+     BJ = (hubOD * PI * (traverse/pipeOD)) / 12 ;  next += (prevOD * PI * turns)/12
+     wraps    = MATCH(spoolOD, Q:BH, 1)      (0 when none fits)
+     capacity = INDEX(BJ:DA, wraps)
+------------------------------------------------------------------------- */
+function wrapModel(spoolOD, hubOD, traverse, pipeOD){
+  const out = {wraps:0, cap:0, odLast:hubOD, ods:[], cums:[]};
+  if(!(pipeOD>0) || !(traverse>0) || !(hubOD>0)) return out;
+  const turns = traverse / pipeOD;
+  let d = hubOD, cum = 0;
+  for(let k=0; k<60; k++){
+    cum += (d * Math.PI * turns) / 12;
+    const odAfter = Math.floor(d + 2*pipeOD);
+    out.ods.push(odAfter); out.cums.push(cum);
+    if(odAfter <= d) break;                 // guard
+    d = odAfter;
+    if(odAfter > spoolOD + 4*pipeOD) break; // no point going further
+  }
+  let n = 0;
+  for(let i=0;i<out.ods.length;i++){ if(out.ods[i] <= spoolOD) n = i+1; else break; }
+  out.wraps = n;
+  out.cap   = n ? out.cums[n-1] : 0;
+  out.odLast = n ? out.ods[n-1] : hubOD;
+  return out;
+}
+
+/* ---------- weight take-off --------------------------------------------
+   Calibrated against the source drawing: SP192-HD160-T92 with the shipped
+   defaults returns 6,376 lbs (note 17 on OVERALL ASSEMBLY DRAFT DWG).
+------------------------------------------------------------------------- */
+function takeoff(p){
+  const items = [];
+  const add = (desc, qty, lbEach, mat) => { if(lbEach>0 && qty>0)
+      items.push({desc, qty, each:lbEach, total:qty*lbEach, mat:mat||"steel"}); };
+
+  // 1. drum -- separate traverses, or one rolled cylinder
+  if(p.drumType === "solid"){
+    const tD = p.tdrum;
+    add("Drum, rolled plate " + frac(tD) + " x " + fmt(p.hd) + '" OD x ' +
+        fmt(p.tv) + '" lg', 1,
+        Math.PI * Math.max(p.hd - tD, 0) * tD * p.tv * DENS);
+  } else {
+    add("Traverse, " + p.batDesc + " x " + fmt(p.tv) + '" lg',
+        Math.round(p.nbat), p.tv/12 * p.batLbFt,
+        p.batMat === "wood" ? "wood" : "steel");
+  }
+
+  // 2. flange rim ring, rolled tube -- one per flange
+  add("Rim ring, " + tubeName(p.ringB,p.ringT) + " rolled to " + fmt(p.sp) + '" dia',
+      2, Math.PI * p.sp / 12 * tubeLbFt(p.ringB, p.ringT));
+
+  // 3. spokes -- full radius, hub boss out to the inside of the rim
+  const sl = Math.max((p.sp - 2*p.ringB - p.spokeid)/2, 0);
+  add("Spoke, " + tubeName(p.spokeB,p.spokeT) + " x " + fmt(sl) + '" lg',
+      2*Math.round(p.nspoke), sl/12 * tubeLbFt(p.spokeB,p.spokeT));
+
+  // 4. hub boss -- a plate ring (or square) bored for the pole
+  const bo = Math.max(p.spokeid, 0), bi = Math.max(p.arbod, 0), tB = 0.75;
+  const bArea = (p.bossShape === "square" ? bo*bo : Math.PI/4*bo*bo)
+              - Math.PI/4*bi*bi;
+  add("Hub boss, " + frac(tB) + " plate, " + fmt(bo) + '" ' +
+      (p.bossShape === "square" ? "sq" : "dia") + " bored " + fmt(bi) + '"',
+      2, Math.max(bArea,0) * tB * DENS);
+
+  const sub = items.reduce((a,b)=>a+b.total, 0);
+  const steel = items.filter(i=>i.mat==="steel").reduce((a,b)=>a+b.total, 0);
+  const wood  = items.filter(i=>i.mat==="wood" ).reduce((a,b)=>a+b.total, 0);
+  return {items, sub, steel, wood, total: sub};
+}
+
+/* ---------- notes ------------------------------------------------------- */
+function noteList(p){
+  const ang = 360/Math.round(p.nspoke);
+  const words = ["","ONE","TWO","THREE","FOUR","FIVE","SIX","SEVEN","EIGHT","NINE","TEN",
+    "ELEVEN","TWELVE","THIRTEEN","FOURTEEN","FIFTEEN","SIXTEEN","SEVENTEEN","EIGHTEEN",
+    "NINETEEN","TWENTY"];
+  const n = Math.round(p.nspoke);
+  const nw = words[n] || String(n);
+  const drumNote =
+    p.drumType === "solid"
+      ? "DRUM SHALL BE " + frac(p.tdrum) + " ROLLED PLATE, " + fmt(p.hd) +
+        '" OD, CONTINUOUS AND WELDED TO THE SPOKES.'
+      : "PROVIDE " + Math.round(p.nbat) + " LONGITUDINAL TRAVERSES, " + p.batNote +
+        ", ONE " + (p.batMat === "wood" ? "FASTENED" : "WELDED") + " TO EACH SPOKE.";
+  return [
+    "STRUCTURAL STEEL SHALL BE ASTM A36 OR EQUIVALENT.",
+    "SPOKES SHALL BE " + tubeName(p.spokeB,p.spokeT).replace(/"/g,'"') + " SQUARE TUBING.",
+    "ALL PLATE COMPONENTS (FLANGES, HUB, LIFT COMPONENTS, ETC.) SHALL BE ASTM A36 OR "+
+      "EQUIVALENT UNLESS OTHERWISE NOTED.",
+    "GRIND ALL WELD SURFACES AND SHALL BE SMOOTH AND FREE OF BURRS.",
+    "PROVIDE " + nw + " (" + n + ") SPOKES PER SIDE, EQUALLY SPACED (" +
+      fmt(ang) + "°) AS SHOWN.",
+    "INSTALL ROLLED CIRCUMFERENTIAL RINGS " + tubeName(p.ringB,p.ringT) +
+      " TUBING AS CIRCUMFERENTIAL REINFORCEMENT.",
+    drumNote,
+    "SPOKES SHALL RUN FULL RADIUS FROM THE " + fmt(p.spokeid) +
+      '" DIA HUB BOSS TO THE FLANGE RIM.',
+    "THE " + fmt(p.hd) + '" HUB DIAMETER IS MEASURED TO THE OUTSIDE FACE OF THE '+
+      "TRAVERSES, WHICH IS THE WINDING SURFACE.",
+    "ALL LIFTING FEATURES SHALL BE DESIGNED TO SUPPORT FULL LOAD WITH A MINIMUM "+
+      "SAFETY FACTOR OF 3:1.",
+    "ALL WELDING SHALL CONFORM TO AMERICAN WELDING SOCIETY AWS D1.1.",
+    "PROVIDE CONTINUOUS FILLET WELDS UNLESS OTHERWISE SPECIFIED.",
+    "REMOVE ALL SLAG, SPATTER, AND SHARP EDGES.",
+    "MAINTAIN FLANGE PARALLELISM.",
+    "ALL DIMENSIONS ARE IN INCHES.",
+    "GRIND WELDS FLUSH WHERE REQUIRED FOR FIT-UP OR FUNCTIONAL SURFACES.",
+    "VERIFY ALL CRITICAL DIMENSIONS PRIOR TO FABRICATION.",
+    "ALL COMPONENTS SHALL BE FREE OF WARPING, TWIST, OR DISTORTION AFTER WELDING.",
+    "DO NOT SCALE DRAWING FOR DIMENSIONS.",
+    "ESTIMATED WEIGHT: " + com(Math.round(p.weight)) + " LBS."
+  ];
+}
+function wrapText(t, max){
+  const w = t.split(" "), out = []; let line = "";
+  for(const word of w){
+    if(line && (line.length + 1 + word.length) > max){ out.push(line); line = word; }
+    else line = line ? line + " " + word : word;
+  }
+  if(line) out.push(line);
+  return out;
+}
+
+/* ---------- SVG drawing ------------------------------------------------- */
+const SW = 1100, SH = 715;
+const L = {                                  // sheet frame
+  ox:6, oy:6, ow:1088, oh:703,
+  ix:26, iy:26, iw:1048, ih:663
+};
+const IX2 = L.ix + L.iw, IY2 = L.iy + L.ih;
+
+function ln(x1,y1,x2,y2,cls){ return `<line x1="${r2(x1)}" y1="${r2(y1)}" x2="${r2(x2)}" y2="${r2(y2)}" class="${cls||'thin'}"/>`; }
+function rc(x,y,w,h,cls){ return `<rect x="${r2(x)}" y="${r2(y)}" width="${r2(w)}" height="${r2(h)}" class="${cls||'thin'}"/>`; }
+function ci(cx,cy,r,cls){ return `<circle cx="${r2(cx)}" cy="${r2(cy)}" r="${r2(r)}" class="${cls||'thin'}"/>`; }
+function tx(x,y,s,cls,anchor,size,extra){
+  /* size goes in an inline style: a class rule would beat a presentation attribute */
+  return `<text x="${r2(x)}" y="${r2(y)}" class="${cls||'t'}"`+
+         (anchor?` text-anchor="${anchor}"`:``)+
+         (size?` style="font-size:${r2(size)}px"`:``)+
+         (extra?` ${extra}`:``)+`>${esc(s)}</text>`;
+}
+const r2 = n => Math.round(n*100)/100;
+
+function arrow(x,y,ang){                     // filled arrowhead, ang in rad, points +x
+  const a = 7, w = 2.3;
+  const p = [[0,0],[-a,-w],[-a,w]].map(([px,py])=>{
+    const c=Math.cos(ang), s=Math.sin(ang);
+    return [r2(x+px*c-py*s), r2(y+px*s+py*c)];
+  });
+  return `<polygon points="${p.map(q=>q.join(",")).join(" ")}" class="fill"/>`;
+}
+
+/* ---------- draggable dimensions ---------------------------------------
+   Each dimension keeps its placement in `dimPos` and is redrawn from it, so
+   dragging the text is what moves the leader rather than the reverse.
+   Diameter dims store the leader angle and its stand-off from the circle;
+   the linear dim stores an offset from the edge of the view.
+------------------------------------------------------------------------ */
+const DIMPOS_DEFAULT = {
+  sp: {ang:-0.30*Math.PI, ext:34},
+  hd: {ang: 0.30*Math.PI, ext:60},
+  tv: {dy:28, dx:0}
+};
+let dimPos  = JSON.parse(JSON.stringify(DIMPOS_DEFAULT));
+let DIMGEOM = null;                          // view geometry, set by buildSheet
+
+function dimH(x1,x2,y,label,extFrom,dx,key){ // horizontal dimension
+  let s = "";
+  if(extFrom!==undefined){
+    s += ln(x1, extFrom, x1, y+6, "ext") + ln(x2, extFrom, x2, y+6, "ext");
+  }
+  s += ln(x1,y,x2,y,"dim") + arrow(x1,y,Math.PI) + arrow(x2,y,0);
+  const cx = (x1+x2)/2 + (dx||0);
+  s += tx(cx, y-5, label, "dt", "middle", null, key?`data-dim-text="${key}"`:"");
+  return s;
+}
+function dimDia(cx,cy,rad,label,ang,sub,ext,key){ // diameter dim, leader at ang
+  const c=Math.cos(ang), s=Math.sin(ang);
+  const x1=cx-rad*c, y1=cy-rad*s, x2=cx+rad*c, y2=cy+rad*s;
+  const E=ext||34, lx=x2+E*c, ly=y2+E*s;
+  const flip = c < 0;                        // leader heading left: run the
+  const tail = flip ? -40 : 40;              // shoulder and text that way too
+  const tag  = key ? `data-dim-text="${key}"` : "";
+  const anc  = flip ? "end" : "start", off = flip ? -4 : 4;
+  let o = ln(x1,y1,x2,y2,"dim") + arrow(x1,y1,ang+Math.PI) + arrow(x2,y2,ang);
+  o += ln(x2,y2,lx,ly,"dim") + ln(lx,ly,lx+tail,ly,"dim");
+  o += tx(lx+off, ly-4, label, "dt", anc, null, tag);
+  if(sub) o += tx(lx+off, ly+7, sub, "tn", anc, null, tag);
+  return o;
+}
+function bossPath(cx,cy,r,shape){            // hub boss outline, round or square
+  return shape === "square" ? rc(cx-r, cy-r, 2*r, 2*r, "thin")
+                            : ci(cx, cy, r, "thin");
+}
+function dimAnchor(key){                     // the point the text hangs off
+  const G = DIMGEOM; if(!G) return {x:0,y:0};
+  if(key === "tv")
+    return {x:(G.x1+G.x2)/2 + dimPos.tv.dx, y:G.scy - G.R - dimPos.tv.dy};
+  const rad = key === "sp" ? G.R : G.Rh, q = dimPos[key];
+  return {x:G.fcx + (rad+q.ext)*Math.cos(q.ang),
+          y:G.fcy + (rad+q.ext)*Math.sin(q.ang)};
+}
+function dimSVG(key){                        // one dimension, rebuilt from dimPos
+  const G = DIMGEOM; if(!G) return "";
+  if(key === "sp")
+    return dimDia(G.fcx,G.fcy,G.R,  "Ø"+fmt(G.sp), dimPos.sp.ang, null,
+                  dimPos.sp.ext, "sp");
+  if(key === "hd")
+    return dimDia(G.fcx,G.fcy,G.Rh, "Ø"+fmt(G.hd), dimPos.hd.ang,
+                  "O/S FACE OF TRAVERSES", dimPos.hd.ext, "hd");
+  return dimH(G.x1, G.x2, G.scy - G.R - dimPos.tv.dy, fmt(G.tv),
+              G.scy - G.R, dimPos.tv.dx, "tv");
+}
+function dimMoveTo(key, mx, my){             // put the anchor at mx,my
+  const G = DIMGEOM; if(!G) return;
+  if(key === "tv"){
+    dimPos.tv.dx = mx - (G.x1+G.x2)/2;
+    dimPos.tv.dy = (G.scy - G.R) - my;
+  } else {
+    const rad = key === "sp" ? G.R : G.Rh;
+    const dx = mx - G.fcx, dy = my - G.fcy;
+    dimPos[key].ang = Math.atan2(dy, dx);
+    dimPos[key].ext = Math.max(8, Math.hypot(dx, dy) - rad);
+  }
+}
+
+/* ---------- where the traverses sit ------------------------------------
+   There is exactly one traverse per spoke, always landing on a spoke -- so
+   the count is never set independently, it follows the spoke count. Returns
+   one fraction-of-a-turn per traverse, which each view adds its own base
+   angle to.
+------------------------------------------------------------------------ */
+function traverseTurns(ns){
+  const out = [];
+  for(let j=0; j<ns; j++) out.push(j/ns);
+  return out;
+}
+
+/* ---------- isometric pictorial ----------------------------------------
+   Reel axis on world X, flange circles in the YZ plane. Yaw 45 deg then
+   pitch 22 deg, orthographic, mirrored so the far flange sits up and to the
+   left -- the same attitude as the shop pictorial. Pure wireframe: every
+   member is drawn, nothing is hidden, which is how the pictorial reads.
+------------------------------------------------------------------------ */
+function isoView(p, box){
+  const A = 45*Math.PI/180, B = 22*Math.PI/180;
+  const ca=Math.cos(A), sa=Math.sin(A), cb=Math.cos(B), sb=Math.sin(B);
+  const pr  = (x,y,z) => { const x1 = x*ca + z*sa, z1 = -x*sa + z*ca;
+                           return [ -x1, -(y*cb - z1*sb) ]; };
+  /* depth along the view axis; more negative = further from the eye */
+  const dep = (x,y,z) => { const z1 = -x*sa + z*ca; return y*sb + z1*cb; };
+
+  const solid = p.isoStyle !== "wire";
+  const faces = [];
+  let minX=1e9,maxX=-1e9,minY=1e9,maxY=-1e9;
+
+  /* Every member is chopped into short quads so the painter's sort works per
+     piece, not per part -- the top of the near flange really is behind the
+     bottom of the far one. `edges` lists which of the four sides get a stroke;
+     the rest are internal joins between pieces and must stay invisible. */
+  function face(pts3, cls, edges){
+    let d = 0; const pts = [];
+    for(const q of pts3){
+      d += dep(q[0],q[1],q[2]);
+      const s = pr(q[0],q[1],q[2]);
+      if(s[0]<minX)minX=s[0]; if(s[0]>maxX)maxX=s[0];
+      if(s[1]<minY)minY=s[1]; if(s[1]>maxY)maxY=s[1];
+      pts.push(s);
+    }
+    faces.push({d:d/pts3.length, pts, cls, edges});
+  }
+
+  const half = p.tv/2;
+  const Rr = p.sp/2, Rh = p.hd/2, Rs = Math.max(p.spokeid,0)/2;
+  const ringW = p.ringB, ns = Math.max(3, Math.round(p.nspoke));
+  const NC = 72, NSEG = 6;
+
+  const Rb = Math.max(p.arbod,0)/2;           // pole bore
+  [-half, half].forEach(a => {
+    /* rim ring, a flat annulus in the flange plane */
+    {
+      const ro = Rr, ri = Math.max(ro - ringW, 0.5);
+      for(let k=0;k<NC;k++){
+        const t0=2*Math.PI*k/NC, t1=2*Math.PI*(k+1)/NC;
+        face([[a, ro*Math.cos(t0), ro*Math.sin(t0)],[a, ro*Math.cos(t1), ro*Math.sin(t1)],
+              [a, ri*Math.cos(t1), ri*Math.sin(t1)],[a, ri*Math.cos(t0), ri*Math.sin(t0)]],
+             "med", [0,2]);
+      }
+    }
+    /* hub boss, round or square, with the pole bore through it */
+    if(Rs > 1){
+      const corner = k => {                  // boss outline point at turn k/NC
+        if(p.bossShape !== "square")
+          return [Rs*Math.cos(2*Math.PI*k/NC), Rs*Math.sin(2*Math.PI*k/NC)];
+        const u = (k/NC)*4, side = Math.floor(u)%4, f = u-Math.floor(u);
+        const c = [[-1,-1],[1,-1],[1,1],[-1,1]];
+        const A = c[side], B = c[(side+1)%4];
+        return [Rs*(A[0]+(B[0]-A[0])*f), Rs*(A[1]+(B[1]-A[1])*f)];
+      };
+      if(Rb > 0.4){                          // bored: draw it as an annulus
+        for(let k=0;k<NC;k++){
+          const o0=corner(k), o1=corner(k+1);
+          const t0=2*Math.PI*k/NC, t1=2*Math.PI*(k+1)/NC;
+          face([[a,o0[0],o0[1]],[a,o1[0],o1[1]],
+                [a,Rb*Math.cos(t1),Rb*Math.sin(t1)],[a,Rb*Math.cos(t0),Rb*Math.sin(t0)]],
+               "thin", [0,2]);
+        }
+      } else {
+        const disc=[]; for(let k=0;k<NC;k++){ const q=corner(k); disc.push([a,q[0],q[1]]); }
+        face(disc, "thin", "all");
+      }
+    }
+    /* spokes, welded to the inside of the rim rather than lapping over it */
+    const rOut = Math.max(Rr - ringW, Rs + 1), w = p.spokeB/2;
+    for(let k=0;k<ns;k++){
+      const f = 2*Math.PI*k/ns, cf=Math.cos(f), sf=Math.sin(f);
+      const P = (r,s) => [a, r*cf - s*sf, r*sf + s*cf];
+      for(let j=0;j<NSEG;j++){
+        const ra = Rs + (rOut-Rs)*j/NSEG, rb = Rs + (rOut-Rs)*(j+1)/NSEG;
+        const e=[0,2]; if(j===0) e.push(3); if(j===NSEG-1) e.push(1);
+        face([P(ra,-w),P(rb,-w),P(rb,w),P(ra,w)], "thin", e);
+      }
+    }
+  });
+
+  /* traverses: solid sections running along the spokes, ending in the two
+     flange planes. Drawn as boxes so the plank thickness reads -- outer face
+     on the hub circle, inner face batRad below it, both side faces, and a cap
+     at each end. */
+  if(p.drumType === "solid"){
+    /* One continuous cylinder. A rolled surface has no seams, so only the end
+       arcs get a stroke -- stroking each facet's long edges would draw 72
+       false lines down the drum. The straight edges you do see are the
+       silhouette, added explicitly below. */
+    const rIn = Math.max(Rh - p.tdrum, 0.5), NT = 4;
+    const P=(x,r,t)=>[x, r*Math.cos(t), r*Math.sin(t)];
+    for(let k=0;k<NC;k++){
+      const t0=2*Math.PI*k/NC, t1=2*Math.PI*(k+1)/NC;
+      for(let j=0;j<NT;j++){
+        const xa=-half+p.tv*j/NT, xb=-half+p.tv*(j+1)/NT;
+        const e=[]; if(j===0) e.push(3); if(j===NT-1) e.push(1);
+        face([P(xa,Rh,t0),P(xb,Rh,t0),P(xb,Rh,t1),P(xa,Rh,t1)], "med", e);
+        face([P(xa,rIn,t0),P(xb,rIn,t0),P(xb,rIn,t1),P(xa,rIn,t1)], "thin", e);
+      }
+      for(const x of [-half, half])          // the wall thickness at each end
+        face([P(x,rIn,t0),P(x,Rh,t0),P(x,Rh,t1),P(x,rIn,t1)], "med", [1,3]);
+    }
+    /* silhouette: the two points of the circle furthest either side of the
+       projected axis, run the length of the drum */
+    const ax=(()=>{ const a=pr(0,0,0), b=pr(1,0,0);
+                    const dx=b[0]-a[0], dy=b[1]-a[1], m=Math.hypot(dx,dy)||1;
+                    return [-dy/m, dx/m]; })();
+    let tLo=0,tHi=0,dLo=1e9,dHi=-1e9;
+    for(let i=0;i<360;i++){
+      const t=2*Math.PI*i/360, q=pr(0, Rh*Math.cos(t), Rh*Math.sin(t));
+      const d=q[0]*ax[0]+q[1]*ax[1];
+      if(d<dLo){dLo=d;tLo=t;} if(d>dHi){dHi=d;tHi=t;}
+    }
+    for(const t of [tLo,tHi])
+      face([P(-half,Rh,t), P(half,Rh,t)], "med", [0]);
+  } else {
+    const w = p.batWid/2, rOut = Rh, rIn = Math.max(Rh - p.batRad, 0.5);
+    const NT = 4;
+    for(const t of traverseTurns(ns)){
+      const f = 2*Math.PI*t;                 // same base as the spokes above
+      const cf=Math.cos(f), sf=Math.sin(f);
+      const Pt = (x,r,s) => [x, r*cf - s*sf, r*sf + s*cf];
+      for(let j=0;j<NT;j++){
+        const xa = -half + p.tv*j/NT, xb = -half + p.tv*(j+1)/NT;
+        const e=[0,2]; if(j===0) e.push(3); if(j===NT-1) e.push(1);
+        for(const r of [rOut, rIn])          // outer and inner faces
+          face([Pt(xa,r,-w),Pt(xb,r,-w),Pt(xb,r,w),Pt(xa,r,w)], "thin", e);
+        for(const s of [-w, w])              // the two sides
+          face([Pt(xa,rIn,s),Pt(xb,rIn,s),Pt(xb,rOut,s),Pt(xa,rOut,s)], "thin", e);
+      }
+      for(const x of [-half, half])          // end caps
+        face([Pt(x,rIn,-w),Pt(x,rOut,-w),Pt(x,rOut,w),Pt(x,rIn,w)], "thin", "all");
+    }
+  }
+  /* No circle is drawn at the hub diameter in any view: the traverses running
+     between the flanges are what define it. A wrapper plate, if one is selected,
+     still counts in the take-off but is not drawn. No arbor shaft either -- the
+     source drawing shows only the hub boss the spokes converge on. */
+
+  /* --- fit to the box, then paint far-to-near --- */
+  const bw = maxX-minX || 1, bh = maxY-minY || 1;
+  const k = Math.min(box.w/bw, box.h/bh);
+  const ox = box.x + (box.w - bw*k)/2 - minX*k;
+  const oy = box.y + (box.h - bh*k)/2 - minY*k;
+  const XY = s => r2(s[0]*k+ox)+","+r2(s[1]*k+oy);
+
+  faces.sort((u,v) => u.d - v.d);
+  const out = [];
+  for(const f of faces){
+    const P = f.pts;
+    if(solid) out.push(`<polygon points="${P.map(XY).join(" ")}" class="face"/>`);
+    if(f.edges === "all"){
+      out.push(`<polyline points="${P.concat([P[0]]).map(XY).join(" ")}" class="${f.cls}"/>`);
+    } else {
+      const d = f.edges.map(i => "M"+XY(P[i])+"L"+XY(P[(i+1)%P.length])).join("");
+      out.push(`<path d="${d}" class="${f.cls}"/>`);
+    }
+  }
+  return out.join("");
+}
+
+function buildSheet(p){
+  const S = [];
+  S.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SW} ${SH}" id="dwg">`);
+  S.push(`<style>
+    #dwg text{font-family:"Arial Narrow",Arial,Helvetica,sans-serif;fill:${'#14181f'};}
+    #dwg .thin{fill:none;stroke:#14181f;stroke-width:.8}
+    #dwg .thick{fill:none;stroke:#14181f;stroke-width:1.7}
+    #dwg .med{fill:none;stroke:#14181f;stroke-width:1.2}
+    #dwg .dim{fill:none;stroke:#14181f;stroke-width:.6}
+    #dwg .ext{fill:none;stroke:#14181f;stroke-width:.5}
+    #dwg .fill{fill:#14181f;stroke:none}
+    #dwg .face{fill:#ffffff;stroke:none}
+    #dwg [data-dim-text]{cursor:move;pointer-events:bounding-box}
+    #dwg g[data-dim]:hover .dim,#dwg g[data-dim]:hover .ext{stroke:#1f4e9c}
+    #dwg g[data-dim]:hover .fill{fill:#1f4e9c}
+    #dwg g[data-dim]:hover text{fill:#1f4e9c}
+    #dwg .t{font-size:9.5px}
+    #dwg .tn{font-size:8.6px}
+    #dwg .dt{font-size:11px;font-weight:600}
+    #dwg .lbl{font-size:7px;fill:#3a4250}
+    #dwg .val{font-size:11px;font-weight:600}
+    #dwg .big{font-size:14px;font-weight:700}
+    #dwg .zone{font-size:10px;font-weight:700}
+  </style>`);
+  S.push(`<rect x="0" y="0" width="${SW}" height="${SH}" fill="#ffffff"/>`);
+
+  /* ---- frame + zone markers ---- */
+  S.push(rc(L.ox,L.oy,L.ow,L.oh,"med"));
+  S.push(rc(L.ix,L.iy,L.iw,L.ih,"thick"));
+  for(let i=0;i<8;i++){
+    const w = L.iw/8, x0 = L.ix + w*i;
+    const lab = String(8-i);
+    S.push(tx(x0+w/2, L.iy-9, lab, "zone", "middle"));
+    S.push(tx(x0+w/2, IY2+15, lab, "zone", "middle"));
+    if(i>0){ S.push(ln(x0,L.oy,x0,L.iy,"thin")); S.push(ln(x0,IY2,x0,L.oy+L.oh,"thin")); }
+  }
+  for(let j=0;j<4;j++){
+    const h = L.ih/4, y0 = L.iy + h*j;
+    const lab = "DCBA"[j];
+    S.push(tx(L.ix-11, y0+h/2+4, lab, "zone", "middle"));
+    S.push(tx(IX2+11, y0+h/2+4, lab, "zone", "middle"));
+    if(j>0){ S.push(ln(L.ox,y0,L.ix,y0,"thin")); S.push(ln(IX2,y0,L.ox+L.ow,y0,"thin")); }
+  }
+
+  /* ---- views ---- */
+  const iso = p.layout !== "ortho";                  // isometric shown?
+  const orth = p.layout !== "isoonly";               // ortho views shown?
+  const scale = orth
+      ? (iso ? Math.min(270/p.sp, 200/p.tv) : Math.min(330/p.sp, 280/p.tv))
+      : 1;
+  const R  = p.sp*scale/2, Rh = p.hd*scale/2, Ra = p.arbod*scale/2;
+  const Rs = p.spokeid*scale/2;
+  const fcx = iso ? 271 : 300, fcy = 245;
+  const scx = iso ? 555 : 800, scy = 245;
+  const halfT = p.tv*scale/2;
+  const flt = Math.max(p.ringB*scale, 3.2);          // rim tube seen edge-on
+  const ns  = Math.max(3, Math.round(p.nspoke));
+    const ang = i => (2*Math.PI/ns)*i - Math.PI/2;     // spoke angles, 12 o'clock first
+  const tTurns = traverseTurns(ns);                  // one per spoke, always
+
+  if(orth){
+  /* --- front view: rim ring, full-radius spokes, traverse ends, hub boss --- */
+  const rimIn = R - p.ringB*scale;
+  S.push(ci(fcx,fcy,R,"med"));
+  if(rimIn > 2) S.push(ci(fcx,fcy,rimIn,"med"));
+  const halfW = Math.max(p.spokeB*scale/2, 1.1);
+  /* Hub OD is the outside face of the drum, so the section runs inward */
+  const drumT = p.drumType === "solid" ? p.tdrum : p.batRad;
+  const halfB = Math.max(p.batWid*scale/2, 1.1);
+  const RhIn  = Math.max((p.hd/2 - drumT)*scale, 1);
+  for(let i=0;i<ns;i++){
+    const a = ang(i)*180/Math.PI;
+    S.push(`<g transform="rotate(${r2(a)} ${r2(fcx)} ${r2(fcy)})">`+
+           rc(fcx+Rs, fcy-halfW, Math.max(Math.max(rimIn,R)-Rs,1), halfW*2, "thin")+`</g>`);
+  }
+  if(p.drumType === "solid"){                        // one continuous drum
+    S.push(ci(fcx,fcy,Rh,"med"));
+    if(RhIn > 2) S.push(ci(fcx,fcy,RhIn,"thin"));
+  } else {
+    for(const t of tTurns){                          // traverse ends, on their spokes
+      const a = t*360 - 90;
+      S.push(`<g transform="rotate(${r2(a)} ${r2(fcx)} ${r2(fcy)})">`+
+             rc(fcx+RhIn, fcy-halfB, Rh-RhIn, halfB*2, "thin")+`</g>`);
+    }
+  }
+  S.push(bossPath(fcx, fcy, Rs, p.bossShape));       // hub boss, round or square
+  if(Ra > 1.2) S.push(ci(fcx,fcy,Ra,"thin"));        // pole bore
+  DIMGEOM = {fcx, fcy, R, Rh, sp:p.sp, hd:p.hd, tv:p.tv,
+             x1:scx-halfT, x2:scx+halfT, scy};
+  S.push(`<g data-dim="sp">${dimSVG("sp")}</g>`);
+  S.push(`<g data-dim="hd">${dimSVG("hd")}</g>`);
+  S.push(tx(fcx, fcy+R+30, "FRONT VIEW", "t", "middle"));
+
+  /* --- side view: two rims edge-on with the traverses spanning between --- */
+  const x1 = scx-halfT, x2 = scx+halfT;
+  S.push(rc(x1-flt, scy-R, flt, 2*R, "med"));        // left rim
+  S.push(rc(x2,     scy-R, flt, 2*R, "med"));        // right rim
+  if(p.drumType === "solid"){                        // one continuous drum
+    S.push(rc(x1, scy-Rh, x2-x1, 2*Rh, "med"));
+  } else {
+    for(const t of tTurns){                          // traverses at their true heights
+      /* project all four corners of the section: a plank at 3 o'clock shows
+         its thickness, one at 12 o'clock shows its full width */
+      const th = 2*Math.PI*t - Math.PI/2, sn = Math.sin(th), cs = Math.cos(th);
+      let lo = 1e9, hi = -1e9;
+      for(const r of [RhIn, Rh]) for(const s of [-halfB, halfB]){
+        const v = r*sn + s*cs; if(v<lo) lo=v; if(v>hi) hi=v;
+      }
+      S.push(rc(x1, scy-hi, x2-x1, Math.max(hi-lo, 1), "thin"));
+    }
+  }
+  /* hub boss and the pole bore, on both flange planes */
+  for(const bx of [x1-flt, x2]){
+    S.push(rc(bx, scy-Rs, flt, 2*Rs, "thin"));
+    if(Ra > 1.2) S.push(rc(bx, scy-Ra, flt, 2*Ra, "thin"));
+  }
+  if(Ra > 1.2){                                      // the pole runs right through
+    S.push(ln(x1-flt, scy-Ra, x2+flt, scy-Ra, "thin"));
+    S.push(ln(x1-flt, scy+Ra, x2+flt, scy+Ra, "thin"));
+  }
+  S.push(`<g data-dim="tv">${dimSVG("tv")}</g>`);
+  S.push(tx(scx, scy+R+30, "SIDE VIEW", "t", "middle"));
+  }/* end ortho */
+
+  /* ---- isometric pictorial ---- */
+  if(iso){
+    const box = orth ? {x:686, y:100, w:376, h:300} : {x:120, y:96, w:860, h:360};
+    S.push(isoView(p, box));
+    S.push(tx(box.x + box.w/2, box.y + box.h + 16, "ISOMETRIC VIEW", "t", "middle"));
+  }
+
+  /* ---- revisions table ---- */
+  const rvx=674, rvy=L.iy, rvw=IX2-674, rvh=64;
+  const cw=[38,rvw-38-58-42-62,58,42,62];
+  let cx0=rvx; const colx=[];
+  for(const w of cw){ colx.push(cx0); cx0+=w; }
+  S.push(tx(rvx+rvw/2, rvy-4, "", "t", "middle"));
+  S.push(rc(rvx,rvy,rvw,rvh,"med"));
+  S.push(ln(rvx,rvy+16,rvx+rvw,rvy+16,"thin"));
+  S.push(ln(rvx,rvy+38,rvx+rvw,rvy+38,"thin"));
+  for(let i=1;i<colx.length;i++) S.push(ln(colx[i],rvy+16,colx[i],rvy+rvh,"thin"));
+  S.push(tx(rvx+rvw/2, rvy+12, "REVISIONS", "t", "middle"));
+  const hdr=["REV","DESCRIPTION","DATE","BY","APPROVED"];
+  hdr.forEach((h,i)=>S.push(tx(colx[i]+cw[i]/2, rvy+32, h, "lbl", "middle", 8)));
+  const rvrow=[p.rev, p.revdesc, p.dwgdate, p.dwgby, p.chkby];
+  rvrow.forEach((v,i)=>S.push(tx(colx[i]+ (i===1?5:cw[i]/2), rvy+53, v||"",
+                                 "t", i===1?"start":"middle")));
+
+  /* ---- notes ---- */
+  const nx=36, nw=560;
+  const notes = noteList(p);
+  const lines = [];
+  notes.forEach((n,i)=>{
+    const head = (i+1)+". ";
+    const ws = wrapText(head+n, 128);
+    ws.forEach((l,k)=> lines.push({t:l, ind:k?14:0}));
+  });
+  const nh = 16 + lines.length*10 + 6;
+  const ny = IY2 - nh - 6;
+  S.push(tx(nx+4, ny+11, "NOTES (UNLESS OTHERWISE SPECIFIED):", "t"));
+  lines.forEach((l,i)=> S.push(tx(nx+6+l.ind, ny+23+i*10, l.t, "tn")));
+
+  /* ---- proprietary block ---- */
+  const px=600, pw=IX2-600, py=IY2-144-58, ph=52;
+  S.push(rc(px,py,pw,ph,"thin"));
+  const prop = ["This product has been designed by Specialty RTP, LLC exclusively and shall not",
+                "be reproduced unless authorized in writing by Specialty RTP, LLC."];
+  prop.forEach((t,i)=>S.push(tx(px+6, py+18+i*13, t, "tn")));
+
+  /* ---- title block ---- */
+  const tbx=600, tby=IY2-144, tbw=IX2-600, tbh=144;
+  S.push(rc(tbx,tby,tbw,tbh,"thick"));
+  const cA=150, cB=110;
+  const ax=tbx, bx=tbx+cA, ccx=tbx+cA+cB, cw3=tbw-cA-cB;
+  S.push(ln(bx,tby,bx,tby+tbh,"thin"));
+  S.push(ln(ccx,tby,ccx,tby+tbh,"thin"));
+
+  /* 0.48 em per character is the measured average for Arial Narrow at these sizes */
+  const fitSize = (text, w, max) =>
+    Math.max(5.5, Math.min(max, (w-8) / (Math.max(String(text||"").length,1) * 0.48)));
+  function cell(x,y,w,h,label,value,vcls,vsize){
+    let s = rc(x,y,w,h,"thin");
+    if(label) s += tx(x+3, y+8.5, label, "lbl");
+    if(value) s += tx(x+w/2, y+h-6, value, vcls||"val", "middle",
+                      vsize || fitSize(value, w, 11));
+    return s;
+  }
+  /* col A: sign-off rows + tolerance block */
+  const rh=26;
+  S.push(cell(ax,        tby,      cA/2, rh, "DWG. BY", p.dwgby));
+  S.push(cell(ax+cA/2,   tby,      cA/2, rh, "DATE:",   p.dwgdate));
+  S.push(cell(ax,        tby+rh,   cA/2, rh, "CHK. BY", p.chkby));
+  S.push(cell(ax+cA/2,   tby+rh,   cA/2, rh, "DATE:",   p.chkdate));
+  S.push(cell(ax,        tby+2*rh, cA/2, rh, "APV. BY", p.apvby));
+  S.push(cell(ax+cA/2,   tby+2*rh, cA/2, rh, "DATE:",   p.apvdate));
+  const toy = tby+3*rh, toh = tbh-3*rh;
+  S.push(rc(ax,toy,cA,toh,"thin"));
+  S.push(tx(ax+cA/2, toy+9,  "TOLERANCES UNLESS", "lbl", "middle", 7.4));
+  S.push(tx(ax+cA/2, toy+17, "OTHERWISE SPECIFIED", "lbl", "middle", 7.4));
+  const tol=[[".0","±.030","FRACTIONAL"],[".00","±.010",'DIM <6" ± 1/64"'],
+             [".000","±.005",'DIM >6" ± 1/32"'],[".0000","±.0005","ANGULAR ±1°"]];
+  tol.forEach((t,i)=>{
+    const y=toy+27+i*9.5;
+    S.push(tx(ax+5,  y, t[0], "tn", "start", 7.2));
+    S.push(tx(ax+34, y, t[1], "tn", "start", 7.2));
+    S.push(tx(ax+68, y, t[2], "tn", "start", 7.2));
+  });
+  /* col B: material stack */
+  const bl=["MATERIAL TYPE:","HEAT TREAT:","FINISH:","COATING:","CONVENTION:"];
+  const bv=[p.matl,"","",p.coat,""];
+  bl.forEach((t,i)=>S.push(cell(bx, tby+tbh/5*i, cB, tbh/5, t, bv[i])));
+  /* col C: title / part no / bottom strip */
+  S.push(cell(ccx, tby, cw3, 52, "TITLE:", "", ""));
+  S.push(tx(ccx+cw3/2, tby+36, p.title, "big", "middle", fitSize(p.title, cw3, 14)));
+  S.push(cell(ccx, tby+52, cw3*0.66, 40, "ITEM PART NO:", ""));
+  S.push(tx(ccx+cw3*0.33, tby+82, p.partno, "val", "middle",
+            fitSize(p.partno, cw3*0.66, 12)));
+  S.push(cell(ccx+cw3*0.66, tby+52, cw3*0.34, 40, "SIZE:", "D"));
+  const by=tby+92, bh=tbh-92;
+  const w1=cw3*0.22, w2=cw3*0.18, w3=cw3*0.34, w4=cw3*0.12, w5=cw3*0.14;
+  let bxx=ccx;
+  S.push(cell(bxx, by, w1, bh, "SCALE:", "N.T.S.")); bxx+=w1;
+  S.push(cell(bxx, by, w2, bh, "UNITS:", "INCH"));   bxx+=w2;
+  S.push(cell(bxx, by, w3, bh, "DWG. NO.", p.dwgnoOut, "val")); bxx+=w3;
+  S.push(cell(bxx, by, w4, bh, "REV:", p.rev));      bxx+=w4;
+  S.push(cell(bxx, by, w5, bh, "SHEET:", p.sheet));
+
+  S.push(`</svg>`);
+  return S.join("");
+}
+
+/* ---------- DXF export -------------------------------------------------- */
+function buildDXF(p){
+  const e = [];
+  const push = (...a)=>e.push(...a);
+  const line=(x1,y1,x2,y2,lay)=>push("0","LINE","8",lay,"10",x1,"20",y1,"30","0",
+                                     "11",x2,"21",y2,"31","0");
+  const circ=(cx,cy,r,lay)=>push("0","CIRCLE","8",lay,"10",cx,"20",cy,"30","0","40",r);
+
+  const box=(xa,ya,xb,yb,lay)=>{ line(xa,ya,xb,ya,lay); line(xb,ya,xb,yb,lay);
+                                 line(xb,yb,xa,yb,lay); line(xa,yb,xa,ya,lay); };
+  /* front view at origin */
+  const solid = p.drumType === "solid";
+  const ns=Math.max(3,Math.round(p.nspoke)),
+        hw=p.spokeB/2, bw=p.batWid/2,
+        r1=Math.max(p.spokeid,0)/2, r2_=p.sp/2, rimIn=r2_-p.ringB,
+        rb=p.hd/2, rbIn=Math.max(rb - (solid ? p.tdrum : p.batRad), 0.5);
+  circ(0,0,r2_,"RIM"); if(rimIn>0) circ(0,0,rimIn,"RIM");
+  if(p.arbod>0) circ(0,0,p.arbod/2,"BORE");
+  const rot=(ang)=>{ const c=Math.cos(ang), s=Math.sin(ang);
+                     return (x,y)=>[x*c-y*s, x*s+y*c]; };
+  for(let i=0;i<ns;i++){
+    const pt=rot((2*Math.PI/ns)*i - Math.PI/2);
+    const q=[pt(r1,-hw),pt(Math.max(rimIn,r2_),-hw),
+             pt(Math.max(rimIn,r2_),hw),pt(r1,hw)];
+    for(let k=0;k<4;k++) line(q[k][0],q[k][1],q[(k+1)%4][0],q[(k+1)%4][1],"SPOKES");
+  }
+  const tTurns = traverseTurns(ns);
+  if(solid){ circ(0,0,rb,"DRUM"); if(rbIn>0) circ(0,0,rbIn,"DRUM"); }
+  else for(const tu of tTurns){                 // traverse seen end-on, on its spoke
+    const pt=rot(2*Math.PI*tu - Math.PI/2);
+    const t=[pt(rbIn,-bw),pt(rb,-bw),pt(rb,bw),pt(rbIn,bw)];
+    for(let k=0;k<4;k++) line(t[k][0],t[k][1],t[(k+1)%4][0],t[(k+1)%4][1],"TRAVERSE");
+  }
+  if(r1>0){                                     // hub boss, round or square
+    if(p.bossShape === "square") box(-r1,-r1,r1,r1,"HUB");
+    else circ(0,0,r1,"HUB");
+  }
+  /* side view offset to the right */
+  const ox = p.sp/2 + 40 + p.tv/2 + p.ringB;
+  const ht=p.tv/2, ft=p.ringB;
+  box(ox-ht-ft, -p.sp/2, ox-ht, p.sp/2, "RIM");
+  box(ox+ht,    -p.sp/2, ox+ht+ft, p.sp/2, "RIM");
+  if(solid) box(ox-ht, -rb, ox+ht, rb, "DRUM");
+  else for(const tu of tTurns){
+    const th = 2*Math.PI*tu - Math.PI/2, sn=Math.sin(th), cs=Math.cos(th);
+    let lo=1e9, hi=-1e9;
+    for(const r of [rbIn, rb]) for(const s of [-bw, bw]){
+      const v = r*sn + s*cs; if(v<lo)lo=v; if(v>hi)hi=v;
+    }
+    box(ox-ht, lo, ox+ht, hi, "TRAVERSE");
+  }
+  for(const bx of [[ox-ht-ft, ox-ht],[ox+ht, ox+ht+ft]]){
+    if(r1>0) box(bx[0], -r1, bx[1], r1, "HUB");
+  }
+  if(p.arbod>0){                                // the pole runs right through
+    line(ox-ht-ft, -p.arbod/2, ox+ht+ft, -p.arbod/2, "BORE");
+    line(ox-ht-ft,  p.arbod/2, ox+ht+ft,  p.arbod/2, "BORE");
+  }
+
+  return ["0","SECTION","2","ENTITIES", ...e, "0","ENDSEC","0","EOF"]
+         .map(v => typeof v === "number" ? (Math.round(v*1e6)/1e6).toString() : v)
+         .join("\r\n") + "\r\n";
+}
+
+/* ---------- state / read + write UI ------------------------------------- */
+function readUI(){
+  const p = {};
+  NUMKEYS.forEach(k => p[k] = parseFloat($(k).value) || 0);
+  TXTKEYS.forEach(k => p[k] = $(k).value);
+  SELKEYS.forEach(k => p[k] = $(k).value);
+  const [sb,st] = $("spokeTube").value.split("x").map(Number);
+  const [rb,rt] = $("ringTube").value.split("x").map(Number);
+  const [bb,bt] = $("batTube").value.split("x").map(Number);
+  p.spokeB=sb; p.spokeT=st; p.ringB=rb; p.ringT=rt; p.batB=bb; p.batT=bt;
+
+  /* one traverse per spoke, always landing on one -- never set independently */
+  p.nbat = Math.max(3, Math.round(p.nspoke));
+
+  /* One description of the traverse section that every view and the take-off
+     reads. batRad is the radial thickness, batWid the width around the drum.
+     Hub OD is the OUTSIDE face of the traverses, so they run inward from it. */
+  if(p.batMat === "wood"){
+    const [tw, ww] = $("batLumber").value.split("x").map(Number);
+    const nom = (LUMBER.find(l => l[1]===tw && l[2]===ww) || ["",tw,ww])[0];
+    p.batRad = tw; p.batWid = ww;
+    p.batLbFt = tw * ww * 12 * (p.woodDens/1728);
+    p.batDesc = nom + " timber (" + frac(tw) + " x " + frac(ww) + " dressed)";
+    p.batNote = nom + " NOMINAL TIMBER PLANK (" + frac(tw) + " X " + frac(ww) + " DRESSED)";
+  } else {
+    p.batRad = bb; p.batWid = bb;
+    p.batLbFt = tubeLbFt(bb, bt);
+    p.batDesc = tubeName(bb,bt) + " square tubing";
+    p.batNote = tubeName(bb,bt) + " SQUARE TUBING";
+  }
+  p.partno = "SP"+fmt(p.sp)+"-HD"+fmt(p.hd)+"-T"+fmt(p.tv);
+  p.title  = fmt(p.sp)+'" X '+fmt(p.hd)+'" X '+fmt(p.tv)+'" PIPE REEL';
+  p.dwgnoOut = p.dwgno.trim() || p.partno;
+  return p;
+}
+function setUI(v){
+  NUMKEYS.forEach(k => { if(k in v) $(k).value = v[k]; });
+  TXTKEYS.forEach(k => { if(k in v) $(k).value = v[k]; });
+  SELKEYS.forEach(k => { if(k in v) $(k).value = v[k]; });
+  syncSliders();
+}
+function syncSliders(){
+  [["sp","spR"],["hd","hdR"],["tv","tvR"]].forEach(([n,s])=>{ $(s).value = $(n).value; });
+}
+
+/* ---------- render ------------------------------------------------------ */
+function render(){
+  const p = readUI();
+
+  /* weight first -- note 17 needs it */
+  const to = takeoff(p);
+  p.weight = to.total;
+
+  /* capacity */
+  const wm = wrapModel(p.sp, p.hd, p.tv, p.pod);
+  const bend = p.pod>0 ? p.hd/p.pod : 0;
+  const bendOK = bend >= p.bmin;
+  const wFull = wm.cap * p.plf;
+  const wtOK  = p.wmax<=0 || wFull <= p.wmax;
+  const feasible = bendOK && wtOK && wm.cap>0;
+  const reels = feasible ? Math.ceil(p.plen/wm.cap) : 0;
+  const last  = reels ? p.plen - (reels-1)*wm.cap : 0;
+
+  /* header + part no */
+  $("partno").textContent = p.partno;
+  const hit = CAT.find(c=>c[1]===p.sp && c[2]===p.hd && c[3]===p.tv);
+  const isRef = p.sp===REF[1] && p.hd===REF[2] && p.tv===REF[3];
+  $("tagSrc").textContent = hit ? "in Reel Plan" : (isRef ? "source drawing" : "custom");
+  $("presetNote").textContent = hit
+    ? "This size is row " + (CAT.indexOf(hit)+11) + " of Reel Plan!A11:D28 — the optimizer can pick it automatically."
+    : (isRef ? "The size on OVERALL ASSEMBLY DRAFT DWG. Not in the Reel Plan catalogue — add it there if you want the optimizer to select it."
+             : "Not in the Reel Plan catalogue. Add a row at Reel Plan!A11:D28 to make it selectable by the optimizer.");
+
+  /* dimension derived */
+  $("dDepth").textContent = fmt((p.sp-p.hd)/2) + '"';
+  $("dWidth").textContent = fmt(p.tv + 2*p.ringB) + '"' +
+    "";
+  $("dArea").textContent  = com(Math.PI*p.hd*p.tv/144, 1) + " ft²";
+  const nbn = Math.max(1, Math.round(p.nbat)), pitch = Math.PI*p.hd/nbn;
+  $("dNbat").textContent  = nbn;
+  $("dPitch").textContent = com(pitch,1) + '"';
+  $("dGap").textContent   = com(pitch - p.batWid, 1) + '"';
+  $("dCover").textContent = com(100*nbn*p.batWid/(Math.PI*p.hd), 1) + "%";
+
+  /* checks */
+  const C = [];
+  const chk=(ok,label,val)=>C.push(`<div class="chk ${ok?'pass':'fail'}"><span>${label}</span><b>${val}</b></div>`);
+  chk(bendOK, "Bend ratio ≥ " + fmt(p.bmin), fmt(Math.round(bend*100)/100));
+  chk(wm.wraps>0, "Wraps fit in wind depth", wm.wraps);
+  chk(wtOK, "Pipe weight at capacity " +
+      (p.wmax>0 ? "≤ " + com(p.wmax) + " lb" : "(no limit)"),
+      com(Math.round(wFull)) + " lb");
+  chk(p.sp>p.hd, "Spool OD > hub OD", fmt((p.sp-p.hd)/2) + '" depth');
+  const gap = Math.PI*p.hd/Math.max(1,Math.round(p.nbat)) - p.batWid;
+  chk(gap <= p.pod, "Traverse gap ≤ pipe OD <small>rule of thumb, not a spec</small>",
+      com(gap,1) + '" vs ' + fmt(p.pod) + '"');
+  $("checks").innerHTML = C.join("");
+
+  $("dWraps").textContent  = wm.wraps;
+  $("dCap").textContent    = com(wm.cap,1) + " ft";
+  $("dBraid").textContent  = wm.cap>0 ? com(wm.cap*1.01,1) + " ft" : "—";
+  $("dBase").textContent   = wm.cap>0 ? com(wm.cap*1.01+10,1) + " ft" : "—";
+  $("dReels").textContent  = feasible ? com(reels) : "not feasible";
+  $("dLast").textContent   = feasible ? com(last,1) + " ft" : "—";
+
+  /* ---- load actually on this reel (a part-wound reel is the normal case
+          for the last reel of a run) ---- */
+  $("rowFill").style.display = p.fillMode === "full" ? "none" : "";
+  const asked  = p.fillMode === "full" ? wm.cap : Math.max(p.fillLen, 0);
+  const onReel = Math.min(asked, wm.cap);
+  $("fillWarn").innerHTML = (asked > wm.cap + 1e-6)
+    ? `<div class="chk fail"><span>Over capacity — clamped to the reel's ` +
+      `${com(wm.cap,1)} ft</span><b>${com(asked,1)} ft</b></div>` : "";
+
+  /* walk the layers the same way the wrap model builds them */
+  let done = 0;
+  for(let i=0;i<wm.wraps;i++){ if(wm.cums[i] <= onReel + 1e-9) done = i+1; else break; }
+  const prevCum  = done>0 ? wm.cums[done-1] : 0;
+  const inProg   = (onReel - prevCum) > 1e-9 && done < wm.wraps;
+  const layerCap = done < wm.wraps ? wm.cums[done] - prevCum : 0;
+  const partPct  = (inProg && layerCap>0) ? (onReel-prevCum)/layerCap : 0;
+  const odNow    = inProg ? wm.ods[done] : (done>0 ? wm.ods[done-1] : p.hd);
+  const wPipe    = onReel * p.plf;
+
+  $("tagFill").textContent = p.fillMode === "full" ? "full reel" : "part wound";
+  $("dOnReel").textContent = com(onReel,1) + " ft";
+  $("dPct").textContent    = wm.cap>0 ? com(100*onReel/wm.cap,1) + "% of capacity" : "—";
+  $("dLayers").textContent = wm.wraps>0
+    ? (done + (inProg ? " + " + com(100*partPct,0) + "% of layer " + (done+1) : "")
+        + " of " + wm.wraps)
+    : "—";
+  $("dOdNow").textContent  = onReel>0 ? fmt(odNow) + '"' : fmt(p.hd) + '" (bare)';
+  $("dFree").textContent   = onReel>0 ? fmt((p.sp-odNow)/2) + '" radial'
+                                      : fmt((p.sp-p.hd)/2) + '" radial';
+  $("dWfull").textContent  = com(Math.round(wPipe)) + " lb";
+  $("dTare").textContent   = com(Math.round(to.total)) + " lb";
+  $("dWgross").textContent = com(Math.round(wPipe + to.total)) + " lb";
+
+  /* only show the size control that applies to the chosen traverse material */
+  const solidDrum = p.drumType === "solid", isWood = p.batMat === "wood";
+  $("rowDrumT").style.display   = solidDrum ? "" : "none";
+  $("rowBatMat").style.display  = solidDrum ? "none" : "";
+  $("rowLumber").style.display  = (!solidDrum && isWood) ? "" : "none";
+  $("rowWoodDens").style.display= (!solidDrum && isWood) ? "" : "none";
+  $("rowBatTube").style.display = (!solidDrum && !isWood) ? "" : "none";
+
+  /* BOM */
+  const rows = to.items.map(it =>
+    `<tr><td>${esc(it.desc)}</td><td>${it.qty}</td><td>${com(it.each,1)}</td>` +
+    `<td>${com(Math.round(it.total))}</td></tr>`);
+  rows.unshift(`<tr><th>Item</th><th>Qty</th><th>lb ea</th><th>lb</th></tr>`);
+  if(to.wood > 0){
+    rows.push(`<tr><td>&nbsp;&nbsp;of which steel</td><td></td><td></td>` +
+              `<td>${com(Math.round(to.steel))}</td></tr>`);
+    rows.push(`<tr><td>&nbsp;&nbsp;of which timber</td><td></td><td></td>` +
+              `<td>${com(Math.round(to.wood))}</td></tr>`);
+  }
+  rows.push(`<tr><td>Subtotal</td><td></td><td></td><td><b>${com(Math.round(to.sub))}</b></td></tr>`);
+  rows.push(`<tr><td><b>Estimated weight</b></td><td></td><td></td>` +
+            `<td><b>${com(Math.round(to.total))}</b></td></tr>`);
+  $("bom").innerHTML = "<tbody>" + rows.join("") + "</tbody>";
+  $("tagW").textContent = com(Math.round(to.total)) + " lb";
+
+  /* catalogue */
+  const cr = [];
+  const all = CAT.concat([REF]);
+  all.forEach(c=>{
+    const m = wrapModel(c[1],c[2],c[3],p.pod);
+    const b = p.pod>0 ? c[2]/p.pod : 0;
+    const wf = m.cap*p.plf;
+    const ok = b>=p.bmin && m.cap>0 && (p.wmax<=0 || wf<=p.wmax);
+    const n  = ok ? Math.ceil(p.plen/m.cap) : 0;
+    const tare = takeoff(Object.assign({},p,{sp:c[1],hd:c[2],tv:c[3]})).total;
+    const cur = (c[1]===p.sp && c[2]===p.hd && c[3]===p.tv);
+    cr.push(`<tr class="${cur?'cur':''} ${ok?'':'bad'}" data-d="${c[1]},${c[2]},${c[3]}">`+
+      `<td>${esc(c[0])}${c===REF?" ★":""}</td><td>${fmt(c[1])}</td><td>${fmt(c[2])}</td>`+
+      `<td>${fmt(c[3])}</td><td>${com(b,1)}</td><td>${m.wraps}</td>`+
+      `<td>${com(m.cap,0)}</td><td>${ok?com(n):"—"}</td>`+
+      `<td>${com(Math.round(wf+tare))}</td></tr>`);
+  });
+  $("cat").querySelector("tbody").innerHTML = cr.join("");
+  $("cat").querySelectorAll("tbody tr").forEach(tr=>{
+    tr.onclick = ()=>{
+      const [a,b,c] = tr.dataset.d.split(",").map(Number);
+      $("sp").value=a; $("hd").value=b; $("tv").value=c; syncSliders(); render();
+    };
+  });
+
+  /* sheet */
+  $("sheetView").innerHTML = buildSheet(p);
+  $("footnote").innerHTML =
+    "Sheet regenerates live, laid out to follow OVERALL ASSEMBLY DRAFT DWG: spoked flanges "+
+    "with a single rim ring, full-radius spokes to a hub boss, and "+ Math.round(p.nbat) +
+    " traverses on the "+ fmt(p.hd) +"&Prime; circle &mdash; shown end-on in the front view "+
+    "and spanning between the rims in the side view. <b>Drag any dimension text</b> to "+
+    "reposition it &mdash; the leader and arrows follow, and the placement is saved. "+
+    "Weight is a take-off of the frame as drawn; note 17 on the source drawing says "+
+    "6,376 lb, so the balance is plate, lugs and hub assembly the three views do not show.";
+
+  /* persist */
+  try{
+    const v={}; NUMKEYS.forEach(k=>v[k]=$(k).value);
+    TXTKEYS.forEach(k=>v[k]=$(k).value); SELKEYS.forEach(k=>v[k]=$(k).value);
+    v._dim = dimPos;
+    localStorage.setItem("srtp-reel-designer-v5", JSON.stringify(v));
+  }catch(e){}
+
+  window.__state = {p, to, wm, lastReelFt: feasible ? last : 0,
+                    onReel, odNow, layersDone: done, partPct};
+}
+
+/* ---------- wiring ------------------------------------------------------ */
+function buildSelects(){
+  const opt = TUBES.map(([b,t])=>
+    `<option value="${b}x${t}">${esc(tubeName(b,t))}</option>`).join("");
+  $("spokeTube").innerHTML = opt;
+  $("ringTube").innerHTML  = opt;
+  $("batTube").innerHTML   = opt;
+  $("batLumber").innerHTML = LUMBER.map(([n,t,w])=>
+    `<option value="${t}x${w}">${esc(n)}  (${esc(frac(t))} x ${esc(frac(w))})</option>`).join("");
+
+  const groups =
+    `<optgroup label="Source drawing">
+       <option value="${REF[1]},${REF[2]},${REF[3]}">${REF[0]} — 192" x 160" x 92" pipe reel</option>
+     </optgroup>
+     <optgroup label="Reel Plan catalogue">` +
+    CAT.map(c=>`<option value="${c[1]},${c[2]},${c[3]}">${c[0]}</option>`).join("") +
+    `</optgroup><optgroup label="—"><option value="custom">Custom…</option></optgroup>`;
+  $("preset").innerHTML = groups;
+}
+
+function download(name, text, mime){
+  const b = new Blob([text], {type: mime||"text/plain;charset=utf-8"});
+  const u = URL.createObjectURL(b);
+  const a = document.createElement("a");
+  a.href = u; a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(u); a.remove(); }, 400);
+}
+
+/* Opened inside a frame -- a shared link rather than the local file -- the
+   browser blocks page-initiated downloads outright. A shared page can ask
+   the viewer to save through the host instead, but only for allow-listed
+   extensions: .svg is one, .dxf is not, so DXF falls back to handing the
+   text over. */
+const FRAMED = (()=>{ try{ return window.self !== window.top; }catch(e){ return true; } })();
+let HOSTSAVE = null;                          // resolves later, or stays null
+if(FRAMED && window.claude && window.claude.use){
+  window.claude.use("downloads").then(
+    d => { HOSTSAVE = d; exportLabels(); },
+    () => {});
+}
+function exportLabels(){
+  if(!FRAMED) return;
+  const svg = document.getElementById("btnSvg"),
+        dxf = document.getElementById("btnDxf"),
+        note= document.getElementById("shareNote");
+  if(svg) svg.textContent = HOSTSAVE ? "Download SVG" : "Copy SVG";
+  if(dxf) dxf.textContent = "Copy DXF";
+  if(note){
+    note.hidden = false;
+    note.textContent = HOSTSAVE
+      ? "Shared link — DXF copies to the clipboard rather than saving."
+      : "Shared link — exports copy to the clipboard rather than saving.";
+  }
+}
+
+function showText(name, text){
+  const back = document.createElement("div");
+  back.className = "modalback";
+  back.innerHTML = `<div class="modal"><header><b>${esc(name)}</b>` +
+    `<button class="mclose">Close</button></header>` +
+    `<textarea spellcheck="false" readonly></textarea>` +
+    `<p>Select all and copy, then save it as <b>${esc(name)}</b>.</p></div>`;
+  back.querySelector("textarea").value = text;
+  const shut = ()=>back.remove();
+  back.addEventListener("click", e => { if(e.target === back) shut(); });
+  back.querySelector(".mclose").onclick = shut;
+  document.body.appendChild(back);
+  const ta = back.querySelector("textarea");
+  ta.focus(); ta.select();
+}
+
+function handOff(name, text, btn, label){
+  const flash = ()=>{ btn.textContent = "Copied";
+                      setTimeout(()=>btn.textContent = label, 1200); };
+  if(navigator.clipboard && navigator.clipboard.writeText)
+    navigator.clipboard.writeText(text).then(flash, ()=>showText(name, text));
+  else showText(name, text);
+}
+
+function init(){
+  buildSelects();
+  let start = Object.assign({}, DEFAULTS);
+  try{
+    const s = localStorage.getItem("srtp-reel-designer-v5");
+    if(s){
+      start = Object.assign(start, JSON.parse(s));
+      if(start._dim) for(const k of Object.keys(DIMPOS_DEFAULT))
+        if(start._dim[k]) Object.assign(dimPos[k], start._dim[k]);
+    }
+  }catch(e){}
+  setUI(start);
+
+  [...NUMKEYS, ...TXTKEYS, ...SELKEYS].forEach(k=>{
+    $(k).addEventListener("input", ()=>{ syncSliders(); render(); });
+  });
+  [["spR","sp"],["hdR","hd"],["tvR","tv"]].forEach(([s,n])=>{
+    $(s).addEventListener("input", ()=>{ $(n).value = $(s).value; render(); });
+  });
+  $("preset").addEventListener("change", ()=>{
+    const v = $("preset").value;
+    if(v==="custom") return;
+    const [a,b,c] = v.split(",").map(Number);
+    $("sp").value=a; $("hd").value=b; $("tv").value=c; syncSliders(); render();
+  });
+
+  $("btnPrint").onclick = ()=>window.print();
+
+  exportLabels();
+  $("btnSvg").onclick = ()=>{
+    const name = window.__state.p.partno + ".svg";
+    const svg  = '<?xml version="1.0" encoding="UTF-8"?>\n' + $("sheetView").innerHTML;
+    if(!FRAMED) return download(name, svg, "image/svg+xml");
+    if(HOSTSAVE) HOSTSAVE.save({filename:name, data:svg}).catch(err => {
+      if(err && err.code === "declined") return;   // viewer said no; leave it
+      handOff(name, svg, $("btnSvg"), "Download SVG");
+    });
+    else handOff(name, svg, $("btnSvg"), "Copy SVG");
+  };
+  $("btnDxf").onclick = ()=>{
+    const name = window.__state.p.partno + ".dxf";
+    const dxf  = buildDXF(window.__state.p);
+    if(FRAMED) handOff(name, dxf, $("btnDxf"), "Copy DXF");
+    else       download(name, dxf, "application/dxf");
+  };
+  $("btnBom").onclick = ()=>{
+    const {p,to} = window.__state;
+    const L = ["Part no\t"+p.partno, "Spool OD\t"+fmt(p.sp), "Hub OD\t"+fmt(p.hd),
+               "Traverse\t"+fmt(p.tv), "", "Item\tQty\tlb ea\tlb"];
+    to.items.forEach(i=>L.push([i.desc,i.qty,i.each.toFixed(1),Math.round(i.total)].join("\t")));
+    L.push(["Subtotal","","",Math.round(to.sub)].join("\t"));
+    L.push(["ESTIMATED WEIGHT","","",Math.round(to.total)].join("\t"));
+    handOff(p.partno + " BOM.txt", L.join("\n"), $("btnBom"), "Copy BOM");
+  };
+  /* --- drag a dimension by its text; the leader follows --- */
+  const sheetEl = $("sheetView");
+  let drag = null;
+  const svgPt = (svg, e) => {
+    const m = svg.getScreenCTM(); if(!m) return null;
+    const q = svg.createSVGPoint(); q.x = e.clientX; q.y = e.clientY;
+    return q.matrixTransform(m.inverse());
+  };
+  sheetEl.addEventListener("pointerdown", e => {
+    const t = e.target.closest && e.target.closest("[data-dim-text]");
+    if(!t) return;
+    const svg = sheetEl.querySelector("svg"); if(!svg) return;
+    const q = svgPt(svg, e); if(!q) return;
+    const key = t.getAttribute("data-dim-text"), a = dimAnchor(key);
+    drag = {key, svg, ox:q.x - a.x, oy:q.y - a.y};
+    e.preventDefault();
+  });
+  window.addEventListener("pointermove", e => {
+    if(!drag) return;
+    const q = svgPt(drag.svg, e); if(!q) return;
+    dimMoveTo(drag.key, q.x - drag.ox, q.y - drag.oy);
+    /* repaint just this dimension -- the whole sheet is far too big to
+       rebuild on every pointer move */
+    const g = drag.svg.querySelector(`g[data-dim="${drag.key}"]`);
+    if(g) g.innerHTML = dimSVG(drag.key);
+  });
+  window.addEventListener("pointerup", ()=>{ if(drag){ drag = null; render(); } });
+
+  $("btnResetDims").onclick = ()=>{
+    dimPos = JSON.parse(JSON.stringify(DIMPOS_DEFAULT));
+    render();
+  };
+  $("btnLastReel").onclick = ()=>{
+    const s = window.__state;
+    if(s && s.lastReelFt > 0){
+      $("fillMode").value = "spec";
+      $("fillLen").value  = Math.round(s.lastReelFt*10)/10;
+      render();
+    }
+  };
+  $("btnReset").onclick = ()=>{
+    dimPos = JSON.parse(JSON.stringify(DIMPOS_DEFAULT));
+    setUI(DEFAULTS); render();
+  };
+
+  render();
+}
+init();
+</script>
+</body>
+</html>
